@@ -165,30 +165,10 @@ def find_workspace_root() -> Path:
 
 
 UI_STYLE_MAP = {
-    "cyberpunk": {
-        "key": "cyberpunk",
-        "name": "赛博黑曜石 (Cyberpunk Dark)",
-        "desc": "深邃黑曜石底色、天蓝/紫罗兰发光点缀、等宽代码质感，硬核科技感，408统考首选"
-    },
-    "academic": {
-        "key": "academic",
-        "name": "学术纸感 (Academic Paper)",
-        "desc": "象牙暖白纸感底色、深墨色文字、精细衬线字体与数学排版，典雅护眼，严谨推导首选"
-    },
-    "brutalist": {
-        "key": "brutalist",
-        "name": "新波普高能 (Neo-Brutalist)",
-        "desc": "全黑高反差底、亮黄色/高饱和警示强调、厚实黑边框与能量徽标，考前刷题冲刺提神"
-    },
-    "glassmorphism": {
-        "key": "glassmorphism",
-        "name": "灵动晶透 (Frosted Glassmorphism)",
-        "desc": "半透明毛玻璃滤镜、流光渐变边框、柔和呼吸阴影，现代轻奢工作室科技感"
-    },
-    "classic_blue": {
-        "key": "classic_blue",
-        "name": "经典蓝白 (Classic Blue)",
-        "desc": "明亮蓝白界面，清爽低认知负荷，温和耐看"
+    "calm_textbook": {
+        "key": "calm_textbook",
+        "name": "温和教材 (Calm Textbook)",
+        "desc": "暖白与浅灰绿背景、深墨绿标题和控制、少量琥珀易错提醒；柔和边界与清晰状态反馈"
     }
 }
 
@@ -199,7 +179,7 @@ def init_profile(
     major: str = "",
     lang: str = "C/C++",
     stage: str = "强化冲刺",
-    ui_style: str = "cyberpunk",
+    ui_style: str = "calm_textbook",
     year: int | None = None,
     skip: bool = False
 ) -> int:
@@ -219,7 +199,7 @@ def init_profile(
     clean_stage = stage.strip() or "二轮强化与真题冲刺"
     clean_ui_style = ui_style.strip().lower()
     if clean_ui_style not in UI_STYLE_MAP:
-        clean_ui_style = "cyberpunk"
+        clean_ui_style = "calm_textbook"
     style_info = UI_STYLE_MAP[clean_ui_style]
 
     intel = get_school_intelligence(clean_school, clean_exam)
@@ -249,7 +229,7 @@ def init_profile(
 | **major_direction** | `{clean_major}` | 侧重学术算法推导或工程实用实现 |
 | **coding_language** | `{clean_lang}` | 规范笔记与沙盘代码语法规范（纯 C 指针 vs C++ 引用与 STL） |
 | **review_stage** | `{clean_stage}` | 控制微课解说深度：基础概念夯实 vs 冲刺重点回顾 |
-| **ui_style** | `{clean_ui_style}` | 融合 `impeccable` 设计规范，烘焙微课播放器默认调色盘与组件主题 |
+| **ui_style** | `{clean_ui_style}` | 微课固定采用温和教材风格，不提供其他主题或运行时换肤 |
 | **days_remaining** | `{days_remaining}` | 渲染至微课右上角考研倒计时看板 |
 
 ---
@@ -258,7 +238,7 @@ def init_profile(
 1. **时间优先**：距离预估考试日期剩余 {days_remaining} 天，减少冗余铺垫，聚焦核心概念与适用条件；
 2. **代码风格统一**：采用 `{clean_lang}` 规范代码，并明确边界、输入输出与复杂度；
 3. **闭环验证**：每小节结合例题或推演检查理解，记录仍需核实的内容；
-4. **视觉与交互舒适度**：微课播放器默认渲染 `{style_info['name']}` 主题，支持学习中实时无缝切换。
+4. **视觉与交互舒适度**：微课播放器固定渲染 `{style_info['name']}`，用颜色、文字状态和读数共同反馈学习进度。
 """
 
     profile_path = profile_dir / "PROFILE.md"
@@ -320,7 +300,7 @@ def main():
     parser.add_argument("--major", default="", help="Target major/direction (e.g. 0854 电子信息/软件工程)")
     parser.add_argument("--lang", default="C/C++", help="Preferred coding language (e.g. C/C++, C++ STL)")
     parser.add_argument("--stage", default="强化冲刺", help="Review stage (e.g. 基础夯实, 强化冲刺, 考前真题)")
-    parser.add_argument("--ui-style", "--theme", dest="ui_style", choices=list(UI_STYLE_MAP.keys()), default="cyberpunk", help="Video player UI style (impeccable craft: cyberpunk, academic, brutalist, glassmorphism, classic_blue)")
+    parser.add_argument("--ui-style", "--theme", dest="ui_style", choices=list(UI_STYLE_MAP.keys()), default="calm_textbook", help="Video player UI style (only calm_textbook is supported)")
     parser.add_argument("--year", type=int, default=None, help="Target exam year (e.g. 2026)")
     parser.add_argument("--skip", action="store_true", help="Skip candidate profile setup (soft fallback)")
     args = parser.parse_args()
@@ -334,21 +314,8 @@ def main():
             major_in = input("3. 报考专业 [0854 电子信息/软件工程]: ").strip()
             lang_in = input("4. 代码语言偏好 [C/C++]: ").strip() or "C/C++"
             stage_in = input("5. 当前复习阶段 [强化冲刺]: ").strip() or "强化冲刺"
-            print("6. 微课播放器视觉风格 (UI Theme):")
-            print("   [1] 赛博黑曜石 (cyberpunk, 默认硬核科技)")
-            print("   [2] 学术纸感 (academic, 典雅纸感护眼)")
-            print("   [3] 新波普高能 (brutalist, 冲刺高能提神)")
-            print("   [4] 灵动晶透 (glassmorphism, 现代轻奢毛玻璃)")
-            print("   [5] 经典蓝白 (classic_blue, 亲和清晰)")
-            theme_choice = input("请选择风格编号 [1-5，默认 1]: ").strip()
-            theme_choice_map = {
-                "1": "cyberpunk",
-                "2": "academic",
-                "3": "brutalist",
-                "4": "glassmorphism",
-                "5": "classic_blue"
-            }
-            ui_style_in = theme_choice_map.get(theme_choice, "cyberpunk")
+            print("6. 微课播放器视觉风格：温和教材 (calm_textbook，固定默认)")
+            ui_style_in = "calm_textbook"
             return init_profile(school=school_in, exam=exam_in, major=major_in, lang=lang_in, stage=stage_in, ui_style=ui_style_in, year=args.year)
         else:
             print(

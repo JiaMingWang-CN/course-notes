@@ -11,11 +11,11 @@ Usage:
 This script bridges course-notes text notes and Hypit visual production:
 1. Deeply parses 408 positioning, core concepts, formulas, code snippets, and traps.
 2. Scaffolds Hypit production assets: BRIEF.md, TREATMENT.md, SCRIPT.md, STORYBOARD.md.
-3. Automatically generates a standalone, responsive, high-performance HTML5 lecture player:
-   - Smooth continuous progress bar with accurate mm:ss timer and seek support
-   - Domain-tailored animated visual stage (Stack, Queue, String/KMP, Matrix, or Algorithm Tracer)
-   - Synchronized subtitles and Web Speech API audio narration
-   - 408 High-yield formula flashcards and interactive sandbox tester
+3. Automatically generates a standalone, responsive HTML5 lecture player:
+   - Audio-driven progress, subtitles, and scene changes
+   - Note-derived concept progression instead of unrelated preset animations
+   - Fish Audio or Web Speech API narration
+   - Independent lesson playback and hands-on review controls
 """
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def load_user_profile(start_dir: Path | None = None) -> dict | None:
                     "major": "0812 计科 / 0854 软工",
                     "lang": "C/C++",
                     "stage": "强化冲刺",
-                    "ui_style": "cyberpunk",
+                    "ui_style": "calm_textbook",
                     "days_remaining": 90,
                     "school_trap": ""
                 }
@@ -228,15 +228,7 @@ def generate_brief(info: dict, profile: dict | None = None) -> str:
 def generate_treatment(info: dict, profile: dict | None = None) -> str:
     school_name = profile["school"] if profile else "408 统考"
     exam_name = profile["exam"] if profile else "408 计算机学科专业基础"
-    ui_style = (profile.get("ui_style") if profile else "cyberpunk") or "cyberpunk"
-    style_names = {
-        "cyberpunk": "赛博黑曜石 (Cyberpunk Dark) · 极客终端硬核科技",
-        "academic": "学术纸感 (Academic Paper) · 象牙典雅严谨期刊",
-        "brutalist": "新波普高能 (Neo-Brutalist) · 冲刺高反差能量",
-        "glassmorphism": "灵动晶透 (Frosted Glassmorphism) · 现代轻奢毛玻璃",
-        "classic_blue": "经典蓝白 (Classic Blue) · 亲和清晰低认知负荷"
-    }
-    style_desc = style_names.get(ui_style, "赛博黑曜石")
+    style_desc = "温和教材 (Calm Textbook) · 暖白浅灰绿、深墨绿重点与少量琥珀提醒"
 
     return f"""# Production Treatment: {info['title']} (导演方案)
 
@@ -245,17 +237,17 @@ def generate_treatment(info: dict, profile: dict | None = None) -> str:
 ## 一、艺术指导与调性设计
 * **风格定位**：{school_name} · {exam_name} 重点复习课，节奏紧凑、表达清晰；实际语速以最终口播为准。
 * **微课 UI 视觉主题**：【{style_desc}】
-  * 调色体系、组件边框与阴影遵循 Craft Floor 高质标准；
-  * 浏览器原生表面定制：高亮选区（`::selection`）、纤细滚动条与键盘聚焦环（`:focus-visible`）；
-  * 运行时支持 5 套设计语言瞬时动态换肤切换；
-  * 数据结构物理动效：元素进出、指针移动均带有平滑阻尼缓冲；
-* **听觉系统**：自然清晰的讲师语音，关键定义重音强调，错误分支触发醒目音效与振动。
+  * 暖白、浅灰绿作为大面积背景，深墨绿承载标题、导航与播放控制；
+  * 琥珀色仅用于易错提醒；卡片使用适度圆角、细边框和轻浅底色，不使用厚重阴影、玻璃效果或复杂渐变；
+  * 中文标题清晰有分量，正文舒展；数值、下标、时间使用等宽字体；
+  * 未访问、已访问、当前访问同时通过颜色、文字状态与读数区分。
+* **听觉系统**：由真实音频播放进度驱动画面和字幕；一段结束后立即衔接下一段，不以固定秒数制造空白。
 
 ## 二、四大镜头子系统
-1. **舞台模拟系统**：直观展示数据结构的物理内存排布与动态操作过程（类型：{info['topic_type']}）；
-2. **公式与卡片系统**：核心结论悬浮卡片，同时标注适用条件；
-3. **红牌避坑系统**：针对易错点动态弹出警告横幅，避免大题/选择题丢分；
-4. **实时交互沙盘**：支持考生暂停视频，手动执行操作或输入序列验证。
+1. **内容演示系统**：只展示从本节笔记提取的概念与步骤，不套用无关算法动画；
+2. **公式与卡片系统**：核心结论卡片同时标注适用条件；
+3. **易错提醒系统**：使用少量琥珀色和明确文字解释失败条件；
+4. **独立动手演示**：课程播放与手动逐项查看互不抢占状态，按钮直接说明操作。
 """
 
 
@@ -319,11 +311,11 @@ def generate_storyboard(info: dict, profile: dict | None = None) -> str:
 
 | 镜头号 | 时间区间 | 景别 / 布局 | 画面视觉元素与动效 | 口播内容概要 |
 |:---:|:---:|---|---|---|
-| **SC-01** | 00:00 - 00:30 | 全景 / 科技感面板 | 居中浮现深蓝发光标题《{info['title']}》；HUD 显示【{school_name} · {exam_name}】考点定位 | 章节引入与核心逻辑定位 |
-| **SC-02** | 00:30 - 01:20 | 特写 / 结构舞台 | 数据结构容器动态生成，元素依次进入，指针同步更新 | 核心概念具象化与基本操作演示 |
-| **SC-03** | 01:20 - 02:20 | 分屏推演 | 左侧动态模拟核心算法流程，右侧实时输出数据变化序列 | 核心考点深入剖析与算法推演 |
-| **SC-04** | 02:20 - 03:00 | 警示牌弹出 | 弹出警示横幅，对比易混淆操作与笔记中的陷阱 | 典型易错点与适用条件 |
-| **SC-05** | 03:00 - 03:30 | 总结卡片 | 核心内容速记卡片依次点亮打勾，定音符收尾 | 全节要点总结与下一小节预告 |
+| **SC-01** | 随音频 | 全景 / 教材式工作台 | 暖白页面呈现《{info['title']}》与【{school_name} · {exam_name}】学习定位 | 章节引入与目标 |
+| **SC-02** | 随音频 | 内容卡片 | 从笔记提取的第一个核心知识点进入“当前讲解”状态，读数同步更新 | 对应知识点口播 |
+| **SC-03** | 随音频 | 连续步骤 | 后续知识点依次由“未访问”变为“当前访问”“已访问”，画面内容与当前口播一致 | 核心内容逐项讲解 |
+| **SC-04** | 随音频 | 琥珀提醒卡 | 展示笔记中的易错点及判断条件，不播放无关算法仿真 | 易错点与适用条件 |
+| **SC-05** | 随音频 | 回顾卡片 | 已讲知识点统一标为完成，并显示完成读数 | 全节回顾 |
 """
 
 
@@ -446,14 +438,15 @@ def generate_html_player(
 ) -> str:
     """Generate a fully functioning interactive HTML lecture player tailored to the note."""
     title = info["title"]
-    topic = info["topic_type"]
+    # The player uses a note-derived concept progression for every lesson. A
+    # specialized simulation must never be selected from title keywords alone.
+    topic = "lesson"
     points = info["core_points"][:4]
     traps = info["traps"][:3]
     formulas = info["formulas"][:2]
     formula_display = formulas[0] if formulas else r"\text{核心定理与性质}"
     safe_trap_json = json.dumps(traps[0] if traps else "注意边界检查与指针规范", ensure_ascii=False)
 
-    initial_ui_style = (profile.get("ui_style") if profile else "cyberpunk") or "cyberpunk"
     school_name = profile["school"] if profile else "全国统考"
     exam_name = profile["exam"] if profile else "408 计算机学科专业基础"
     days_rem = profile.get("days_remaining", 90) if profile else None
@@ -478,7 +471,7 @@ def generate_html_player(
             "alertText": hud_alert_default,
             "speaker": speaker,
             "text": intro_spoken,
-            "cardId": "card-0",
+            "cardId": None,
             "actionCode": "initStage();"
         }
     ]
@@ -513,7 +506,7 @@ def generate_html_player(
         "alertText": "本节回顾",
         "speaker": speaker,
         "text": f"以上是本节的核心内容，请通过例题继续检查掌握情况。我们下一小节再见！",
-        "cardId": "card-0",
+        "cardId": None,
         "actionCode": "finishStage();"
     })
 
@@ -526,6 +519,10 @@ def generate_html_player(
         add_fish_audio(beats, tts_config, tts_cache_dir)
 
     beats_json = json.dumps(beats, ensure_ascii=False, indent=6)
+    lesson_steps_json = json.dumps([
+        {"title": p["title"], "body": p["content"].replace("\n", " ")[:180]}
+        for p in points
+    ], ensure_ascii=False)
 
     # Topic-specific stage markup
     if topic == "stack":
@@ -608,21 +605,26 @@ def generate_html_player(
         """
     else:
         stage_markup = """
-          <div style="display:flex; flex-direction:column; gap:0.85rem; width:100%; max-width:520px;">
-            <div style="background:#0f172a; border:1px solid var(--border); border-radius:8px; padding:1rem;">
-              <div style="font-size:0.8rem; color:var(--primary); font-weight:bold; margin-bottom:0.5rem;">算法执行推演状态看板</div>
-              <div id="algoStepDesc" style="font-size:0.95rem; line-height:1.5; color:#fff; min-height:45px;">正在就绪算法上下文...</div>
-            </div>
-            <div id="stateSlots" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;"></div>
+          <div class="lesson-stage">
+            <div class="lesson-stage-heading">当前讲解内容</div>
+            <div id="algoStepDesc" class="lesson-stage-copy">课程尚未开始。点击播放后，画面将随旁白逐段更新。</div>
+            <div id="stateSlots" class="lesson-step-list" aria-label="知识点访问状态"></div>
+            <div class="lesson-stage-metrics"><span>已访问 <strong id="visitedCount">0</strong></span><span>当前 <strong id="currentStepLabel">—</strong></span><span>总计 <strong id="totalStepCount">0</strong></span></div>
           </div>
         """
         sandbox_controls = """
           <div class="btn-grid">
-            <button class="tool-btn primary" onclick="manualOp1()">单步执行</button>
-            <button class="tool-btn" onclick="manualOp2()">重置断点</button>
-            <button class="tool-btn" onclick="manualOp3()">全速推演</button>
-            <button class="tool-btn" onclick="manualReset()">重置状态</button>
+            <button class="tool-btn primary" onclick="manualOp1()">查看下一知识点</button>
+            <button class="tool-btn" onclick="manualOp2()">查看上一知识点</button>
+            <button class="tool-btn" onclick="manualOp3()">显示全部知识点</button>
+            <button class="tool-btn" onclick="manualReset()">重置动手演示</button>
           </div>
+          <div class="manual-demo" id="manualDemo" aria-live="polite">
+            <span class="manual-demo-state" id="manualDemoState">未开始</span>
+            <strong id="manualDemoTitle">请选择“查看下一知识点”</strong>
+            <p id="manualDemoBody">这里的操作不会改变课程画面、旁白或播放进度。</p>
+          </div>
+          <p class="sandbox-note">动手演示与课程播放使用独立状态，不会互相覆盖。</p>
         """
 
     # Generate points cards markup
@@ -645,16 +647,14 @@ def generate_html_player(
         """
 
     return f"""<!DOCTYPE html>
-<html lang="zh-CN" data-theme="{initial_ui_style}">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:,">
   <title>{title} —— 408考研动态讲解微课</title>
   <style>
-    /* ==========================================================================
-       impeccable Craft Floor & Multi-Theme System
-       ========================================================================== */
+    /* 温和教材：唯一内置视觉风格 */
     ::selection {{ background: var(--primary); color: #000; }}
     ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
     ::-webkit-scrollbar-track {{ background: transparent; }}
@@ -665,109 +665,24 @@ def generate_html_player(
       font-variant-numeric: tabular-nums;
     }}
 
-    /* 1. Cyberpunk Dark (Default 408 Tech) */
-    :root, [data-theme="cyberpunk"] {{
-      --bg: #0b0f19;
-      --panel: #131d2e;
-      --card: #1e293b;
-      --border: #334155;
-      --primary: #38bdf8;
-      --accent: #818cf8;
-      --success: #34d399;
-      --danger: #f87171;
-      --warning: #fbbf24;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --viewport-bg: radial-gradient(circle at center, #172438 0%, #090e17 100%);
-      --sandbox-bg: #0f172a;
-      --badge-bg: linear-gradient(135deg, #0284c7, #6366f1);
-      --badge-color: #ffffff;
-      --container-bg: rgba(56, 189, 248, 0.03);
-      --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    }}
-
-    /* 2. Academic Paper (Paper Ivory & Deep Ink) */
-    [data-theme="academic"] {{
-      --bg: #f7f4ed;
-      --panel: #ffffff;
-      --card: #f2ede4;
-      --border: #d3cbbe;
-      --primary: #292524;
-      --accent: #4f46e5;
-      --success: #059669;
-      --danger: #dc2626;
-      --warning: #d97706;
-      --text: #1c1917;
-      --muted: #78716c;
-      --viewport-bg: radial-gradient(circle at center, #ede6db 0%, #e2dacb 100%);
-      --sandbox-bg: #e6dfd2;
-      --badge-bg: linear-gradient(135deg, #292524, #57534e);
-      --badge-color: #f5f5f4;
-      --container-bg: rgba(41, 37, 36, 0.04);
-      --card-shadow: 0 10px 20px -3px rgba(41, 37, 36, 0.08);
-    }}
-
-    /* 3. Neo-Brutalist (High-Contrast Adrenaline) */
-    [data-theme="brutalist"] {{
-      --bg: #000000;
-      --panel: #141414;
-      --card: #1f1f1f;
-      --border: #facc15;
-      --primary: #facc15;
-      --accent: #ff0055;
-      --success: #00ff66;
-      --danger: #ff3344;
-      --warning: #facc15;
-      --text: #ffffff;
-      --muted: #a3a3a3;
-      --viewport-bg: radial-gradient(circle at center, #262626 0%, #000000 100%);
-      --sandbox-bg: #1c1c1c;
-      --badge-bg: #facc15;
-      --badge-color: #000000;
-      --container-bg: rgba(250, 204, 21, 0.05);
-      --card-shadow: 0 0 0 2px #facc15, 6px 6px 0px #000000;
-    }}
-
-    /* 4. Frosted Glassmorphism (Crystal Studio) */
-    [data-theme="glassmorphism"] {{
-      --bg: #0a0f1d;
-      --panel: rgba(26, 34, 56, 0.72);
-      --card: rgba(42, 53, 84, 0.45);
-      --border: rgba(255, 255, 255, 0.18);
-      --primary: #c084fc;
-      --accent: #38bdf8;
-      --success: #34d399;
-      --danger: #f87171;
-      --warning: #fde047;
-      --text: #f8fafc;
-      --muted: #cbd5e1;
-      --viewport-bg: radial-gradient(circle at center, #2e1065 0%, #0f172a 100%);
-      --sandbox-bg: rgba(15, 23, 42, 0.55);
-      --badge-bg: linear-gradient(135deg, #9333ea, #3b82f6);
-      --badge-color: #ffffff;
-      --container-bg: rgba(192, 132, 252, 0.05);
-      --card-shadow: 0 20px 30px rgba(0, 0, 0, 0.45);
-    }}
-
-    /* 5. Classic Blue (Friendly Wangdao) */
-    [data-theme="classic_blue"] {{
-      --bg: #f4f8fb;
-      --panel: #ffffff;
-      --card: #eaf2f8;
-      --border: #bcd8eb;
-      --primary: #0284c7;
-      --accent: #2563eb;
-      --success: #16a34a;
-      --danger: #dc2626;
-      --warning: #d97706;
-      --text: #0f172a;
-      --muted: #52667a;
-      --viewport-bg: radial-gradient(circle at center, #e0f2fe 0%, #bae6fd 100%);
-      --sandbox-bg: #e2eef7;
-      --badge-bg: linear-gradient(135deg, #0284c7, #2563eb);
-      --badge-color: #ffffff;
-      --container-bg: rgba(2, 132, 199, 0.05);
-      --card-shadow: 0 10px 20px -3px rgba(2, 132, 199, 0.1);
+    :root {{
+      --bg: #f5f5ef;
+      --panel: #fffefa;
+      --card: #e9f0e5;
+      --border: #dfe3d9;
+      --primary: #24634e;
+      --accent: #315f50;
+      --success: #4f755f;
+      --danger: #93601e;
+      --warning: #93601e;
+      --text: #30413b;
+      --muted: #717b73;
+      --viewport-bg: #f8f8f3;
+      --sandbox-bg: #f2f4ed;
+      --badge-bg: #243c36;
+      --badge-color: #fffefa;
+      --container-bg: #f7f8f2;
+      --card-shadow: 0 4px 12px rgba(36, 60, 54, 0.06);
     }}
 
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -793,22 +708,6 @@ def generate_html_player(
     }}
     .brand {{ display: flex; align-items: center; gap: 0.75rem; }}
     .header-right {{ display: flex; align-items: center; gap: 1.25rem; }}
-    .theme-picker {{ display: flex; align-items: center; gap: 0.45rem; }}
-    .theme-label {{ font-size: 0.8rem; color: var(--muted); font-weight: 500; }}
-    .theme-select {{
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 0.78rem;
-      font-weight: 600;
-      padding: 0.25rem 0.55rem;
-      border-radius: 6px;
-      cursor: pointer;
-      outline: none;
-      transition: all 0.2s;
-    }}
-    .theme-select:hover {{ border-color: var(--primary); }}
-    .theme-select:focus {{ border-color: var(--primary); outline: 2px solid var(--primary); }}
     .badge {{
       background: var(--badge-bg);
       color: var(--badge-color);
@@ -993,7 +892,28 @@ def generate_html_player(
     .tag.blue {{ background: rgba(56, 189, 248, 0.2); color: var(--primary); }}
     .tag.red {{ background: rgba(248, 113, 113, 0.2); color: var(--danger); }}
     .point-title {{ font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }}
-    .point-body {{ font-size: 0.78rem; color: var(--muted); line-height: 1.35; }}
+    .point-body {{ font-size: 0.78rem; color: var(--muted); line-height: 1.55; }}
+    .lesson-stage {{ width:100%; max-width:640px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1.25rem; }}
+    .lesson-stage-heading {{ color:var(--primary); font-weight:700; margin-bottom:0.65rem; }}
+    .lesson-stage-copy {{ color:var(--text); line-height:1.75; min-height:3.5rem; }}
+    .lesson-step-list {{ display:grid; gap:0.5rem; margin-top:1rem; }}
+    .lesson-step {{ display:grid; grid-template-columns:2rem 1fr auto; gap:0.65rem; align-items:center; padding:0.65rem 0.75rem; border:1px solid var(--border); border-radius:10px; background:#fafaf6; color:var(--muted); }}
+    .lesson-step.visited {{ background:var(--card); color:var(--text); }}
+    .lesson-step.current {{ background:var(--primary); border-color:var(--primary); color:#fff; }}
+    .lesson-step-index, .lesson-stage-metrics {{ font-family:Consolas, "SFMono-Regular", monospace; font-variant-numeric:tabular-nums; }}
+    .lesson-step-state {{ font-size:0.72rem; }}
+    .lesson-stage-metrics {{ display:flex; justify-content:space-between; gap:1rem; margin-top:1rem; padding-top:0.8rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.78rem; }}
+    .sandbox-note {{ color:var(--muted); font-size:0.75rem; line-height:1.6; margin-top:0.65rem; }}
+    .manual-demo {{ border:1px solid var(--border); border-radius:10px; background:#fafaf6; padding:0.8rem; min-height:6.5rem; }}
+    .manual-demo-state {{ display:inline-block; color:var(--primary); background:var(--card); border-radius:999px; padding:0.15rem 0.5rem; font:0.7rem Consolas, monospace; margin-bottom:0.45rem; }}
+    .manual-demo strong {{ display:block; color:var(--text); font-size:0.85rem; margin-bottom:0.35rem; }}
+    .manual-demo p {{ color:var(--muted); font-size:0.76rem; line-height:1.55; }}
+    .subtitle-bar {{ background:#243c36; backdrop-filter:none; box-shadow:none; }}
+    .controls-bar {{ background:#243c36; }}
+    .play-btn {{ color:#243c36; background:#e2edda; }}
+    .hud-alert {{ background:#faf0dd; border-color:#eddfc6; color:#7d541d; }}
+    .panel-box, .stage-card {{ box-shadow:var(--card-shadow); }}
+    @media (prefers-reduced-motion: reduce) {{ * {{ transition:none!important; animation:none!important; }} }}
   </style>
 </head>
 <body>
@@ -1003,16 +923,6 @@ def generate_html_player(
       <h1>{title} —— 动态讲解</h1>
     </div>
     <div class="header-right">
-      <div class="theme-picker">
-        <label for="themeSelector" class="theme-label">🎨 视觉风格</label>
-        <select id="themeSelector" onchange="switchTheme(this.value)" class="theme-select">
-          <option value="cyberpunk">⚡ 赛博黑曜石</option>
-          <option value="academic">📜 学术纸感</option>
-          <option value="brutalist">💥 新波普高能</option>
-          <option value="glassmorphism">🔮 灵动晶透</option>
-          <option value="classic_blue">📘 经典蓝白</option>
-        </select>
-      </div>
       <div class="status-badge"><div class="dot"></div><span>{status_text}</span></div>
     </div>
   </header>
@@ -1043,7 +953,7 @@ def generate_html_player(
           </div>
           <div class="time-readout">
             <span id="currentTimeLabel">00:00</span>
-            <span id="totalTimeLabel">03:30</span>
+            <span id="totalTimeLabel">--:--</span>
           </div>
         </div>
         <button class="tool-btn" onclick="restartVideo()" style="flex:0; padding:0.4rem 0.8rem;">↺ 重置</button>
@@ -1070,17 +980,23 @@ def generate_html_player(
   </main>
 
   <script>
-    const TOTAL_DURATION_SEC = 210;
+    let totalDurationSec = 0;
     let currentSeconds = 0;
     let isPlaying = false;
     let playInterval = null;
     let activeAudio = null;
+    let activeBeatIndex = 0;
+    let activeBeatOffset = 0;
     let lastExecutedStep = -1;
+    let timelineReady = false;
+    let timelinePromise = null;
     let elements = [];
     let outputs = [];
     let counter = 1;
+    let manualLessonStep = -1;
 
     const beats = {beats_json};
+    const LESSON_STEPS = {lesson_steps_json};
 
     function formatTime(s) {{
       const m = Math.floor(s / 60);
@@ -1088,86 +1004,147 @@ def generate_html_player(
       return `${{String(m).padStart(2, '0')}}:${{String(sec).padStart(2, '0')}}`;
     }}
 
-    function togglePlay() {{
-      isPlaying = !isPlaying;
+    function estimateSpeechDuration(text) {{
+      return Math.max(2.5, text.length / 4.6);
+    }}
+
+    function prepareTimeline() {{
+      if (timelinePromise) return timelinePromise;
+      timelinePromise = Promise.all(beats.map((beat) => new Promise((resolve) => {{
+        if (!beat.audioData) {{ resolve(estimateSpeechDuration(beat.text)); return; }}
+        const audio = new Audio(beat.audioData);
+        audio.preload = 'metadata';
+        const done = () => resolve(Number.isFinite(audio.duration) ? audio.duration : estimateSpeechDuration(beat.text));
+        audio.addEventListener('loadedmetadata', done, {{once:true}});
+        audio.addEventListener('error', () => resolve(estimateSpeechDuration(beat.text)), {{once:true}});
+      }}))).then((durations) => {{
+        let cursor = 0;
+        beats.forEach((beat, index) => {{
+          beat.startSec = cursor;
+          beat.durationSec = durations[index];
+          cursor += durations[index];
+        }});
+        totalDurationSec = cursor;
+        timelineReady = true;
+        updateProgressUI();
+      }});
+      return timelinePromise;
+    }}
+
+    async function togglePlay() {{
+      await prepareTimeline();
       const btn = document.getElementById('playBtn');
       if (isPlaying) {{
-        btn.innerText = "⏸";
-        startPlayback();
-      }} else {{
-        btn.innerText = "▶";
         pausePlayback();
+        btn.innerText = "▶";
+      }} else {{
+        isPlaying = true;
+        btn.innerText = "⏸";
+        playBeat(activeBeatIndex, activeBeatOffset);
       }}
     }}
 
-    function startPlayback() {{
+    function startProgressTicker() {{
       if (playInterval) clearInterval(playInterval);
-      checkBeatTrigger();
       playInterval = setInterval(() => {{
-        if (currentSeconds >= TOTAL_DURATION_SEC) {{
-          pausePlayback();
-          currentSeconds = TOTAL_DURATION_SEC;
-          updateProgressUI();
-          document.getElementById('playBtn').innerText = "▶";
-          return;
-        }}
-        currentSeconds += 0.5;
+        if (activeAudio) currentSeconds = beats[activeBeatIndex].startSec + activeAudio.currentTime;
         updateProgressUI();
-        checkBeatTrigger();
-      }}, 500);
+      }}, 100);
     }}
 
     function stopNarration() {{
-      if (activeAudio) {{
-        activeAudio.pause();
-        activeAudio.currentTime = 0;
-        activeAudio = null;
-      }}
+      if (activeAudio) {{ activeAudio.pause(); activeAudio = null; }}
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     }}
 
     function pausePlayback() {{
+      if (activeAudio) activeBeatOffset = activeAudio.currentTime;
       if (playInterval) clearInterval(playInterval);
       stopNarration();
       isPlaying = false;
     }}
 
-    function restartVideo() {{
+    function finishPlayback() {{
+      if (playInterval) clearInterval(playInterval);
+      stopNarration();
+      isPlaying = false;
+      currentSeconds = totalDurationSec;
+      activeBeatIndex = 0;
+      activeBeatOffset = 0;
+      document.getElementById('playBtn').innerText = "▶";
+      updateProgressUI();
+    }}
+
+    function playBeat(index, offset = 0) {{
+      if (!isPlaying) return;
+      if (index >= beats.length) {{ finishPlayback(); return; }}
+      stopNarration();
+      activeBeatIndex = index;
+      activeBeatOffset = Math.max(0, offset);
+      currentSeconds = beats[index].startSec + activeBeatOffset;
+      applyBeat(beats[index]);
+      const beat = beats[index];
+      if (beat.audioData) {{
+        activeAudio = new Audio(beat.audioData);
+        activeAudio.currentTime = Math.min(activeBeatOffset, Math.max(0, beat.durationSec - 0.05));
+        activeAudio.onended = () => {{ activeBeatOffset = 0; playBeat(index + 1, 0); }};
+        activeAudio.play().then(startProgressTicker).catch((err) => {{
+          console.log('Fish Audio playback failed:', err);
+          pausePlayback();
+          document.getElementById('playBtn').innerText = "▶";
+        }});
+      }} else if ('speechSynthesis' in window) {{
+        const utterance = new SpeechSynthesisUtterance(beat.text);
+        utterance.lang = beat.language || 'zh-CN';
+        utterance.rate = 1.0;
+        utterance.onend = () => {{ activeBeatOffset = 0; playBeat(index + 1, 0); }};
+        window.speechSynthesis.speak(utterance);
+        const started = performance.now() - activeBeatOffset * 1000;
+        if (playInterval) clearInterval(playInterval);
+        playInterval = setInterval(() => {{
+          currentSeconds = Math.min(beat.startSec + beat.durationSec, beat.startSec + (performance.now() - started) / 1000);
+          updateProgressUI();
+        }}, 100);
+      }} else {{
+        playBeat(index + 1, 0);
+      }}
+    }}
+
+    async function restartVideo() {{
       pausePlayback();
+      await prepareTimeline();
       document.getElementById('playBtn').innerText = "▶";
       currentSeconds = 0;
+      activeBeatIndex = 0;
+      activeBeatOffset = 0;
       lastExecutedStep = -1;
       updateProgressUI();
       initStage();
-      checkBeatTrigger(true);
+      applyBeat(beats[0]);
     }}
 
-    function handleSeek(e) {{
-      const hitArea = e.currentTarget;
-      const rect = hitArea.getBoundingClientRect();
-      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      currentSeconds = pct * TOTAL_DURATION_SEC;
-      lastExecutedStep = -1;
+    async function handleSeek(e) {{
+      await prepareTimeline();
+      const wasPlaying = isPlaying;
+      pausePlayback();
+      const rect = e.currentTarget.getBoundingClientRect();
+      currentSeconds = Math.max(0, Math.min(totalDurationSec, ((e.clientX - rect.left) / rect.width) * totalDurationSec));
+      let index = beats.findIndex((beat) => currentSeconds < beat.startSec + beat.durationSec);
+      if (index < 0) index = beats.length - 1;
+      activeBeatIndex = index;
+      activeBeatOffset = Math.max(0, currentSeconds - beats[index].startSec);
+      applyBeat(beats[index]);
       updateProgressUI();
-      checkBeatTrigger(true);
+      if (wasPlaying) {{ isPlaying = true; document.getElementById('playBtn').innerText = "⏸"; playBeat(index, activeBeatOffset); }}
+      else document.getElementById('playBtn').innerText = "▶";
     }}
 
     function updateProgressUI() {{
-      const pct = (currentSeconds / TOTAL_DURATION_SEC) * 100;
-      document.getElementById('progressFill').style.width = `${{pct}}%`;
+      const duration = totalDurationSec || 0;
+      const pct = duration ? (currentSeconds / duration) * 100 : 0;
+      document.getElementById('progressFill').style.width = `${{Math.min(100, pct)}}%`;
       document.getElementById('currentTimeLabel').innerText = formatTime(currentSeconds);
-      document.getElementById('totalTimeLabel').innerText = formatTime(TOTAL_DURATION_SEC);
-    }}
-
-    function checkBeatTrigger(force = false) {{
-      let targetIndex = -1;
-      for (let i = 0; i < beats.length; i++) {{
-        if (currentSeconds >= beats[i].atSec) targetIndex = i;
-      }}
-      if (targetIndex !== -1 && (targetIndex !== lastExecutedStep || force)) {{
-        lastExecutedStep = targetIndex;
-        applyBeat(beats[targetIndex]);
-      }}
+      document.getElementById('totalTimeLabel').innerText = timelineReady ? formatTime(duration) : "--:--";
     }}
 
     function applyBeat(b) {{
@@ -1180,19 +1157,6 @@ def generate_html_player(
       if (b.cardId) {{
         const el = document.getElementById(b.cardId);
         if (el) el.classList.add('active');
-      }}
-
-      if (isPlaying) {{
-        stopNarration();
-        if (b.audioData) {{
-          activeAudio = new Audio(b.audioData);
-          activeAudio.play().catch(err => console.log('Fish Audio playback failed:', err));
-        }} else if ('speechSynthesis' in window) {{
-          const u = new SpeechSynthesisUtterance(b.text);
-          u.lang = b.language || 'zh-CN';
-          u.rate = 1.15;
-          window.speechSynthesis.speak(u);
-        }}
       }}
 
       try {{ eval(b.actionCode); }} catch (err) {{ console.log(err); }}
@@ -1210,7 +1174,6 @@ def generate_html_player(
     let kmpI = 0;
     let kmpJ = 0;
 
-    const ALGO_DATA = [15, 38, 7, 62, 44, 91];
     let algoStep = 0;
 
     function initStage() {{
@@ -1374,27 +1337,42 @@ def generate_html_player(
       const slots = document.getElementById('stateSlots');
       if (!slots) return;
       slots.innerHTML = '';
-      ALGO_DATA.forEach((val, idx) => {{
-        const d = document.createElement('div');
-        d.className = 'char-cell';
-        d.id = 'algoSlot-' + idx;
-        d.innerHTML = `<span class="c-char">${{val}}</span><span class="c-idx">[${{idx}}]</span>`;
-        slots.appendChild(d);
+      LESSON_STEPS.forEach((step, idx) => {{
+        const item = document.createElement('div');
+        item.className = 'lesson-step';
+        item.id = 'algoSlot-' + idx;
+        item.innerHTML = `<span class="lesson-step-index">${{String(idx + 1).padStart(2, '0')}}</span><span>${{step.title}}</span><span class="lesson-step-state">未访问</span>`;
+        slots.appendChild(item);
       }});
       algoStep = 0;
-      const desc = document.getElementById('algoStepDesc');
-      if (desc) desc.innerText = "算法推演就绪：初始状态序列已加载";
+      const total = document.getElementById('totalStepCount');
+      if (total) total.innerText = LESSON_STEPS.length;
+      updateLessonStage(-1, false);
     }}
 
-    function stepAlgo() {{
-      const idx = algoStep % ALGO_DATA.length;
-      for (let i = 0; i < ALGO_DATA.length; i++) {{
-        const el = document.getElementById('algoSlot-' + i);
-        if (el) el.className = 'char-cell' + (i === idx ? ' active-ptr' : '');
-      }}
+    function updateLessonStage(index, manual = false) {{
+      LESSON_STEPS.forEach((step, idx) => {{
+        const el = document.getElementById('algoSlot-' + idx);
+        if (!el) return;
+        const state = el.querySelector('.lesson-step-state');
+        el.className = 'lesson-step' + (idx < index ? ' visited' : (idx === index ? ' current' : ''));
+        if (state) state.innerText = idx < index ? '已访问' : (idx === index ? '当前访问' : '未访问');
+      }});
       const desc = document.getElementById('algoStepDesc');
-      if (desc) desc.innerText = `执行步骤 ${{algoStep + 1}}：正在扫描下标 [${{idx}}]，当前值: ${{ALGO_DATA[idx]}}`;
-      algoStep++;
+      if (desc) desc.innerText = index >= 0 && LESSON_STEPS[index]
+        ? `${{manual ? '动手查看' : '正在讲解'}}：${{LESSON_STEPS[index].title}}。${{LESSON_STEPS[index].body}}`
+        : '课程尚未开始。点击播放后，画面将随旁白逐段更新。';
+      const visited = document.getElementById('visitedCount');
+      const current = document.getElementById('currentStepLabel');
+      if (visited) visited.innerText = Math.max(0, index);
+      if (current) current.innerText = index >= 0 ? String(index + 1).padStart(2, '0') : '—';
+    }}
+
+    function stepAlgo(index = null, manual = false) {{
+      if (!LESSON_STEPS.length) return;
+      const target = index === null ? algoStep % LESSON_STEPS.length : Math.max(0, Math.min(index, LESSON_STEPS.length - 1));
+      updateLessonStage(target, manual);
+      algoStep = target + 1;
     }}
 
     function stepAction(stepIdx) {{
@@ -1405,11 +1383,27 @@ def generate_html_player(
       }} else if ("{topic}" === "string_kmp") {{
         kmpStep();
       }} else {{
-        stepAlgo();
+        stepAlgo(stepIdx);
       }}
     }}
 
     function showTrapWarning() {{
+      if ("{topic}" === "lesson") {{
+        LESSON_STEPS.forEach((_, idx) => {{
+          const el = document.getElementById('algoSlot-' + idx);
+          if (!el) return;
+          el.className = 'lesson-step visited';
+          const state = el.querySelector('.lesson-step-state');
+          if (state) state.innerText = '已访问';
+        }});
+        const desc = document.getElementById('algoStepDesc');
+        if (desc) desc.innerText = '易错提醒：' + {safe_trap_json};
+        const visited = document.getElementById('visitedCount');
+        const current = document.getElementById('currentStepLabel');
+        if (visited) visited.innerText = LESSON_STEPS.length;
+        if (current) current.innerText = '易错';
+        return;
+      }}
       const vb = document.getElementById('verdictBanner');
       if (vb) {{
         vb.style.display = "flex";
@@ -1421,6 +1415,22 @@ def generate_html_player(
     }}
 
     function finishStage() {{
+      if ("{topic}" === "lesson") {{
+        LESSON_STEPS.forEach((_, idx) => {{
+          const el = document.getElementById('algoSlot-' + idx);
+          if (!el) return;
+          el.className = 'lesson-step visited';
+          const state = el.querySelector('.lesson-step-state');
+          if (state) state.innerText = '已访问';
+        }});
+        const desc = document.getElementById('algoStepDesc');
+        if (desc) desc.innerText = '本节回顾：以上知识点已全部讲解，请结合例题检查掌握情况。';
+        const visited = document.getElementById('visitedCount');
+        const current = document.getElementById('currentStepLabel');
+        if (visited) visited.innerText = LESSON_STEPS.length;
+        if (current) current.innerText = '完成';
+        return;
+      }}
       const vb = document.getElementById('verdictBanner');
       if (vb) vb.style.display = "none";
     }}
@@ -1472,13 +1482,13 @@ def generate_html_player(
       if ("{topic}" === "stack") pushRaw(String(counter++));
       else if ("{topic}" === "queue") queueEnq("D" + (qCount + 1));
       else if ("{topic}" === "string_kmp") kmpStep();
-      else stepAlgo();
+      else {{ manualLessonStep = Math.min(LESSON_STEPS.length - 1, manualLessonStep + 1); renderManualLessonStep(); }}
     }}
     function manualOp2() {{
       if ("{topic}" === "stack") popRaw();
       else if ("{topic}" === "queue") queueDeq();
       else if ("{topic}" === "string_kmp") {{ for (let k = 0; k < 3; k++) kmpStep(); }}
-      else initAlgo();
+      else {{ manualLessonStep = Math.max(0, manualLessonStep - 1); renderManualLessonStep(); }}
     }}
     function manualOp3() {{
       if ("{topic}" === "stack") {{
@@ -1489,10 +1499,35 @@ def generate_html_player(
       }} else if ("{topic}" === "string_kmp") {{
         alert(`模式串 T="ABAA" 的 next 数组为:\nnext[1]=0, next[2]=1, next[3]=1, next[4]=2\nnextval 数组为:\nnextval[1]=0, nextval[2]=1, nextval[3]=0, nextval[4]=2`);
       }} else {{
-        alert("算法推演断点已设置。");
+        const state = document.getElementById('manualDemoState');
+        const title = document.getElementById('manualDemoTitle');
+        const body = document.getElementById('manualDemoBody');
+        if (state) state.innerText = `全部 ${{LESSON_STEPS.length}} 项`;
+        if (title) title.innerText = '全部知识点';
+        if (body) body.innerText = LESSON_STEPS.map((step, idx) => `${{idx + 1}}. ${{step.title}}`).join('；');
       }}
     }}
+    function renderManualLessonStep() {{
+      const step = LESSON_STEPS[manualLessonStep];
+      const state = document.getElementById('manualDemoState');
+      const title = document.getElementById('manualDemoTitle');
+      const body = document.getElementById('manualDemoBody');
+      if (!step) {{ resetManualLessonDemo(); return; }}
+      if (state) state.innerText = `${{String(manualLessonStep + 1).padStart(2, '0')}} / ${{String(LESSON_STEPS.length).padStart(2, '0')}}`;
+      if (title) title.innerText = step.title;
+      if (body) body.innerText = step.body;
+    }}
+    function resetManualLessonDemo() {{
+      manualLessonStep = -1;
+      const state = document.getElementById('manualDemoState');
+      const title = document.getElementById('manualDemoTitle');
+      const body = document.getElementById('manualDemoBody');
+      if (state) state.innerText = '未开始';
+      if (title) title.innerText = '请选择“查看下一知识点”';
+      if (body) body.innerText = '这里的操作不会改变课程画面、旁白或播放进度。';
+    }}
     function manualReset() {{
+      if ("{topic}" === "lesson") {{ resetManualLessonDemo(); return; }}
       initStage();
       const fs = document.getElementById('flowStream');
       if (fs) fs.innerHTML = '<span class="flow-empty">[ 暂无出栈 ]</span>';
@@ -1500,29 +1535,10 @@ def generate_html_player(
       if (vb) vb.style.display = 'none';
     }}
 
-    // Theme Switcher Engine (impeccable)
-    function switchTheme(theme) {{
-      document.documentElement.setAttribute('data-theme', theme);
-      const sel = document.getElementById('themeSelector');
-      if (sel) sel.value = theme;
-      try {{ localStorage.setItem('player_theme_pref', theme); }} catch(e) {{}}
-    }}
-
-    (function initTheme() {{
-      try {{
-        const saved = localStorage.getItem('player_theme_pref');
-        if (saved) {{
-          switchTheme(saved);
-        }} else {{
-          const sel = document.getElementById('themeSelector');
-          if (sel) sel.value = "{initial_ui_style}";
-        }}
-      }} catch(e) {{}}
-    }})();
-
     // Init
     updateProgressUI();
     initStage();
+    resetManualLessonDemo();
   </script>
 </body>
 </html>
