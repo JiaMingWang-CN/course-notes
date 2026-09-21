@@ -7,6 +7,8 @@
 </p>
 
 <p align="center">
+  <a href="https://wjm.dpdns.org/journal/course-notes-guide"><strong>博客指南</strong></a>
+  &nbsp;&bull;&nbsp;
   <a href="#快速开始"><strong>快速开始</strong></a>
   &nbsp;&bull;&nbsp;
   <a href="#功能"><strong>功能</strong></a>
@@ -20,30 +22,29 @@
   <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="Markdown" src="https://img.shields.io/badge/Notes-Markdown-000000?style=flat-square&logo=markdown&logoColor=white">
   <img alt="HTML5" src="https://img.shields.io/badge/Player-HTML5-E34F26?style=flat-square&logo=html5&logoColor=white">
-  <img alt="Bilibili" src="https://img.shields.io/badge/Source-Bilibili-00A1D6?style=flat-square&logo=bilibili&logoColor=white">
 </p>
 
 ---
 
 ## Course Notes
 
-Course Notes 面向在线课程整理场景。给出 B 站 BV 号、视频链接或本地字幕后，AI 可以按章节获取字幕、修正上下文明确的 ASR 错误，并产出小节笔记与全章考点地图。
+Course Notes 面向在线课程整理场景。给出课程视频链接、课程标识或本地字幕后，AI 可以按章节获取字幕、修正上下文明确的 ASR 错误，并产出小节笔记与全章考点地图。
 
 需要更直观的复习材料时，还可以为每个小节生成制作简报、口播脚本、逐秒分镜和单文件 HTML 交互微课。
 
 ```text
-/course-notes BV1xxxxxxxxx 第三章
+/course-notes <课程视频URL> 第三章
 ```
 
 或生成配套微课：
 
 ```text
-/course-notes BV1xxxxxxxxx P20-32 --video
+/course-notes <课程标识> P20-32 --video
 ```
 
 ## 功能
 
-- **课程结构解析**：读取 B 站分 P 标题，按章节名称或 P 区间确定处理范围。
+- **课程结构解析**：读取分 P 课程标题，按章节名称或 P 区间确定处理范围。
 - **字幕优先处理**：下载 AI 中文字幕并保留时间戳，支持直接使用本地字幕。
 - **上下文 ASR 纠错**：结合课程语境修正明确的同音字错误，对歧义内容保留原文并标记待核实。
 - **结构化学习笔记**：整理核心概念、公式条件、算法实现、复杂度、易错点与典型考法。
@@ -109,19 +110,19 @@ yt-dlp --version
 按章节整理：
 
 ```text
-/course-notes https://www.bilibili.com/video/BVxxxxxxxxxx 第三章
+/course-notes <课程视频URL> 第三章
 ```
 
 按 P 区间整理：
 
 ```text
-/course-notes BVxxxxxxxxxx P20-32
+/course-notes <课程标识> P20-32
 ```
 
 生成笔记和交互微课：
 
 ```text
-/course-notes BVxxxxxxxxxx P20-32 --video
+/course-notes <课程标识> P20-32 --video
 ```
 
 使用本地字幕：
@@ -160,7 +161,7 @@ yt-dlp --version
 | 依赖 | 用途 | 要求 |
 |---|---|---|
 | Python | 运行字幕、画像与微课生成脚本 | 3.10 或更高版本 |
-| yt-dlp | 获取 B 站字幕 | 可从终端直接调用 |
+| yt-dlp | 获取在线课程字幕 | 可从终端直接调用 |
 | 支持技能的 AI 编程代理 | 执行工作流、生成并汇总笔记 | 需要文件读写与命令执行能力 |
 
 项目脚本的 Python 部分仅使用标准库；`yt-dlp` 是字幕获取阶段使用的外部命令。
@@ -180,7 +181,7 @@ Playwright CLI 还用于从**已有登录会话**导出 Netscape 格式 Cookie�
 
 ## Cookie 与字幕
 
-部分 B 站字幕可能需要登录 Cookie。Course Notes 会依次尝试：
+部分平台的课程字幕可能需要登录 Cookie。Course Notes 会依次尝试：
 
 1. 用户显式提供的 Netscape `cookies.txt`；
 2. 上次成功使用的 Cookie 路径；
@@ -259,9 +260,29 @@ Cookie 缺失或字幕为空时，不会根据标题猜测课程内容。可能�
 - 微课生成器包含预置交互模板，不适合所有学科。没有匹配的可视化模型时，应优先使用静态步骤图或分镜。
 - 浏览器审查覆盖控制台异常、部分布局边界和截图，不代表所有交互、设备与无障碍场景均已验证。
 
+## 使用限制与免责声明
+
+### 禁止商业化
+
+未经项目作者事先书面许可，不得将本项目及其修改版本用于任何直接或间接的商业用途，包括但不限于收费服务、付费课程、商业培训、内容代生产、软件集成、转售，以及通过广告或订阅获利。
+
+允许个人在非商业学习、研究和内部评估场景中查看与使用本项目。当前仓库未发布单独的 `LICENSE` 文件，项目作者保留全部权利；上述说明不构成对源代码的完整许可授权。
+
+### 免责声明
+
+- 本项目按“现状”提供，不对准确性、完整性、适用性、稳定性或特定用途作任何明示或默示保证。
+- 自动生成的笔记、考情分析、代码、公式和微课内容可能存在错误或遗漏；涉及考试政策、招生信息和专业知识时，应以官方资料及权威教材为准。
+- 用户应自行确保对课程视频、字幕、Cookie 及其他输入材料拥有合法访问和处理权限，并遵守内容平台的服务条款、版权规则与所在地法律法规。
+- 请勿提交、公开或传播 Cookie、账号凭据及其他敏感信息。因凭据泄露、账号风险、版权争议、数据丢失或使用生成内容造成的后果，由使用者自行承担。
+- 本项目与任何课程平台、院校、考试机构以及 README 中提及的第三方项目不存在隶属、认可或官方合作关系；相关名称和商标归各自权利人所有。
+
+## 博客指南
+
+更完整的使用说明与实践记录：<https://wjm.dpdns.org/journal/course-notes-guide>
+
 ## 致谢
 
-本项目的视听工作流与视频理解思路受到以下优秀开源项目启发：
+本项目的视听工作流与视频理解思路受到以下优秀项目启发：
 
 - [hypit-ai/hypit](https://github.com/hypit-ai/hypit) — 面向 AI Agent 的视频创作语言与工作流。
 - [bradautomates/claude-video](https://github.com/bradautomates/claude-video) — 让 AI Agent 基于字幕、音频和视频帧理解视频内容。
