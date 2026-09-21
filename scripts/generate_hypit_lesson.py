@@ -241,7 +241,7 @@ def generate_treatment(info: dict, profile: dict | None = None) -> str:
   * 琥珀色仅用于易错提醒；卡片使用适度圆角、细边框和轻浅底色，不使用厚重阴影、玻璃效果或复杂渐变；
   * 中文标题清晰有分量，正文舒展；数值、下标、时间使用等宽字体；
   * 未访问、已访问、当前访问同时通过颜色、文字状态与读数区分。
-* **听觉系统**：由真实音频播放进度驱动画面和字幕；一段结束后立即衔接下一段，不以固定秒数制造空白。
+* **听觉系统**：由真实音频播放进度驱动画面和字幕；一段结束后立即衔接下一段，不以固定秒数制造空白。使用 Fish Audio 时，字幕保持干净，另行生成带局部情绪、重音和停顿提示的教师式表演文本：导入温暖自信、概念解释平静清楚、易错提醒压低且严肃、总结温暖鼓励。
 
 ## 二、四大镜头子系统
 1. **内容演示系统**：只展示从本节笔记提取的概念与步骤，不套用无关算法动画；
@@ -259,12 +259,12 @@ def generate_script(info: dict, profile: dict | None = None) -> str:
 
     points_text = ""
     for i, p in enumerate(info["core_points"][:4], 1):
-        clean_content = p['content'].replace("\n", " ")[:140]
+        clean_content = _clean_spoken_text(p['content'])[:140]
         points_text += f"""
 ### Segment {i+1}: {p['title']}
 **【讲师口播】**：
 重点来看【{p['title']}】。{clean_content}……这里需要结合定义和适用条件理解，避免只记结论！
-`[画面：结构舞台动态演练 {p['title']} 的操作步骤，高亮关键指标]`
+`[画面：当前知识点进入“当前访问”状态，标题、正文和访问读数与本段口播同步]`
 """
 
     traps_list = list(info.get('traps', [])[:3])
@@ -278,7 +278,7 @@ def generate_script(info: dict, profile: dict | None = None) -> str:
 
 > **主讲人**：{speaker}
 > **目标时长**：约 3 分 30 秒
-> **格式说明**：`[画面]` 镜头指示；`【重音】` 加重词；`||` 停顿。
+> **格式说明**：`[画面]` 为画面提示；正文是干净字幕。Fish Audio 启用时，生成器会另建不显示给学习者的表演文本，加入方括号情绪提示、局部 `[emphasis]` 与 `[pause]`。
 
 ---
 
@@ -389,12 +389,76 @@ def load_tts_config(start_dir: Path, env_file: Path | None = None) -> dict[str, 
     return config
 
 
+FISH_TEACHER_CUES = {
+    "intro": "[warm and confident]",
+    "explain": "[calm explanatory tone]",
+    "warning": "[lower voice, serious]",
+    "summary": "[warm and encouraging]",
+}
+
+
+def _clean_spoken_text(text: str) -> str:
+    """Remove Markdown noise while preserving the lesson's spoken meaning."""
+    cleaned = re.sub(r"\[P\d+\s+\d{1,2}:\d{2}(?:[^\]]*)\]", "", text)
+    cleaned = re.sub(r"[`*_#]", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip(" -—：:；;")
+
+
+def _split_teacher_phrases(text: str, max_chars: int = 34) -> list[str]:
+    """Create short, teachable phrases without changing their order or meaning."""
+    sentences = [part.strip() for part in re.findall(r"[^。！？；]+[。！？；]?", text) if part.strip()]
+    phrases: list[str] = []
+    for sentence in sentences:
+        if len(sentence) <= max_chars:
+            phrases.append(sentence)
+            continue
+        pieces = [part.strip() for part in re.findall(r"[^，、：]+[，、：]?", sentence) if part.strip()]
+        phrases.extend(pieces or [sentence])
+    return phrases
+
+
+def build_fish_teacher_text(
+    text: str,
+    role: str = "explain",
+    emphasis_terms: list[str] | None = None,
+) -> str:
+    """Convert clean captions into expressive Fish S2/S2.1 teacher delivery text.
+
+    Fish receives this tagged text; the HTML subtitle keeps the original clean text.
+    Cues follow Fish's square-bracket natural-language control syntax. Emphasis is
+    a local standalone cue, not an unsupported paired tag.
+    """
+    clean_text = _clean_spoken_text(text)
+    phrases = _split_teacher_phrases(clean_text)
+    if not phrases:
+        return clean_text
+
+    remaining_terms = [term.strip() for term in (emphasis_terms or []) if term.strip()]
+    rendered: list[str] = []
+    for phrase in phrases:
+        marked = phrase
+        for term in list(remaining_terms):
+            if term in marked:
+                marked = marked.replace(term, f"[emphasis]{term}", 1)
+                remaining_terms.remove(term)
+        rendered.append(marked)
+
+    cue = FISH_TEACHER_CUES.get(role, FISH_TEACHER_CUES["explain"])
+    return f"{cue} " + " [pause] ".join(rendered)
+
+
 def add_fish_audio(beats: list[dict], config: dict[str, object], cache_dir: Path) -> None:
-    """Synthesize each timeline beat through the official REST API and embed cached MP3 data."""
+    """Synthesize expressive teacher narration through Fish Audio and embed cached MP3 data."""
     cache_dir.mkdir(parents=True, exist_ok=True)
     for index, beat in enumerate(beats, 1):
+        tts_text = build_fish_teacher_text(
+            beat["text"],
+            role=beat.get("deliveryRole", "explain"),
+            emphasis_terms=beat.get("emphasisTerms", []),
+        )
         cache_key = json.dumps({
-            "text": beat["text"],
+            "text": tts_text,
             "voice_id": config["voice_id"],
             "model": config["model"],
             "speed": config["speed"],
@@ -402,7 +466,7 @@ def add_fish_audio(beats: list[dict], config: dict[str, object], cache_dir: Path
         audio_path = cache_dir / f"{hashlib.sha256(cache_key).hexdigest()}.mp3"
         if not audio_path.exists():
             payload = json.dumps({
-                "text": beat["text"],
+                "text": tts_text,
                 "reference_id": str(config["voice_id"]),
                 "format": "mp3",
                 "prosody": {"speed": float(config["speed"])},
@@ -428,6 +492,8 @@ def add_fish_audio(beats: list[dict], config: dict[str, object], cache_dir: Path
             audio_path.write_bytes(audio)
         beat["audioData"] = "data:audio/mpeg;base64," + base64.b64encode(audio_path.read_bytes()).decode("ascii")
         beat["language"] = config["language"]
+        beat.pop("deliveryRole", None)
+        beat.pop("emphasisTerms", None)
 
 
 def generate_html_player(
@@ -471,6 +537,8 @@ def generate_html_player(
             "alertText": hud_alert_default,
             "speaker": speaker,
             "text": intro_spoken,
+            "deliveryRole": "intro",
+            "emphasisTerms": [title],
             "cardId": None,
             "actionCode": "initStage();"
         }
@@ -478,13 +546,15 @@ def generate_html_player(
 
     sec_counter = 25
     for idx, p in enumerate(points):
-        p_text = p['content'].replace("\n", " ").replace('"', '\\"')[:90]
+        p_text = _clean_spoken_text(p["content"])[:90]
         beats.append({
             "atSec": sec_counter,
             "sceneTag": f"📌 SC-0{idx+2} {p['title'][:16]}",
             "alertText": "重点推演",
             "speaker": speaker,
             "text": f"重点来看：{p['title']}。{p_text}……请结合定义与适用条件理解这一关键逻辑！",
+            "deliveryRole": "explain",
+            "emphasisTerms": [p["title"], "适用条件"],
             "cardId": f"card-{idx}",
             "actionCode": f"stepAction({idx});"
         })
@@ -496,6 +566,8 @@ def generate_html_player(
         "alertText": "易错点提醒",
         "speaker": speaker,
         "text": f"最后检查易错点：{traps[0] if traps else '注意边界条件与指针约定'}。请结合反例确认理解！",
+        "deliveryRole": "warning",
+        "emphasisTerms": ["易错点", "注意"],
         "cardId": "card-trap",
         "actionCode": "showTrapWarning();"
     })
@@ -506,6 +578,8 @@ def generate_html_player(
         "alertText": "本节回顾",
         "speaker": speaker,
         "text": f"以上是本节的核心内容，请通过例题继续检查掌握情况。我们下一小节再见！",
+        "deliveryRole": "summary",
+        "emphasisTerms": ["核心内容", "检查掌握情况"],
         "cardId": None,
         "actionCode": "finishStage();"
     })
@@ -517,6 +591,10 @@ def generate_html_player(
         if tts_cache_dir is None:
             raise ValueError("Fish Audio TTS requires a cache directory")
         add_fish_audio(beats, tts_config, tts_cache_dir)
+    else:
+        for beat in beats:
+            beat.pop("deliveryRole", None)
+            beat.pop("emphasisTerms", None)
 
     beats_json = json.dumps(beats, ensure_ascii=False, indent=6)
     lesson_steps_json = json.dumps([
