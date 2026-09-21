@@ -4,6 +4,7 @@
 tmp/
 user-profile/
 .playwright-cli/
+.course-notes-tts/
 
 # Credentials and local configuration
 .env

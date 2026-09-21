@@ -20,7 +20,9 @@ This script bridges course-notes text notes and Hypit visual production:
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -28,6 +30,8 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 # Force UTF-8 on Windows
 for _s in (sys.stdout, sys.stderr):
@@ -323,7 +327,123 @@ def generate_storyboard(info: dict, profile: dict | None = None) -> str:
 """
 
 
-def generate_html_player(info: dict, profile: dict | None = None) -> str:
+def _read_env_file(path: Path) -> dict[str, str]:
+    """Read a small dotenv file without adding a mandatory dependency."""
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if value and value[0] in "\"'" and value[-1:] == value[0]:
+            value = value[1:-1]
+        values[key] = value
+    return values
+
+
+def load_tts_config(start_dir: Path, env_file: Path | None = None) -> dict[str, object]:
+    """Load TTS settings, with process environment variables taking precedence."""
+    candidates: list[Path] = []
+    if env_file:
+        resolved_env_file = env_file.resolve()
+        if not resolved_env_file.is_file():
+            raise FileNotFoundError(f"Environment file not found: {resolved_env_file}")
+        candidates.append(resolved_env_file)
+    else:
+        cur = start_dir.resolve()
+        while True:
+            candidates.append(cur / ".env")
+            if cur.parent == cur:
+                break
+            cur = cur.parent
+        candidates.extend((Path.cwd() / ".env", Path(__file__).resolve().parent.parent / ".env"))
+
+    file_values: dict[str, str] = {}
+    for candidate in candidates:
+        if candidate.is_file():
+            file_values = _read_env_file(candidate)
+            break
+
+    values = {**file_values, **os.environ}
+    provider = values.get("TTS_PROVIDER", "browser").strip().lower()
+    if provider not in {"browser", "fish_audio"}:
+        raise ValueError("TTS_PROVIDER must be 'browser' or 'fish_audio'")
+
+    config: dict[str, object] = {
+        "provider": provider,
+        "language": values.get("FISH_AUDIO_LANGUAGE", "zh-CN").strip() or "zh-CN",
+    }
+    if provider == "fish_audio":
+        api_key = values.get("FISH_API_KEY", "").strip()
+        voice_id = values.get("FISH_AUDIO_VOICE_ID", "").strip()
+        if not api_key:
+            raise ValueError("TTS_PROVIDER=fish_audio requires FISH_API_KEY in the environment or .env")
+        if not voice_id:
+            raise ValueError("TTS_PROVIDER=fish_audio requires FISH_AUDIO_VOICE_ID in the environment or .env")
+        try:
+            speed = float(values.get("FISH_AUDIO_SPEED", "1.0"))
+        except ValueError as exc:
+            raise ValueError("FISH_AUDIO_SPEED must be a number from 0.5 to 2.0") from exc
+        if not 0.5 <= speed <= 2.0:
+            raise ValueError("FISH_AUDIO_SPEED must be between 0.5 and 2.0")
+        config.update({
+            "api_key": api_key,
+            "voice_id": voice_id,
+            "model": values.get("FISH_AUDIO_MODEL", "s2.1-pro-free").strip() or "s2.1-pro-free",
+            "speed": speed,
+        })
+    return config
+
+
+def add_fish_audio(beats: list[dict], config: dict[str, object], cache_dir: Path) -> None:
+    """Synthesize each timeline beat through the official REST API and embed cached MP3 data."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    for index, beat in enumerate(beats, 1):
+        cache_key = json.dumps({
+            "text": beat["text"],
+            "voice_id": config["voice_id"],
+            "model": config["model"],
+            "speed": config["speed"],
+        }, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        audio_path = cache_dir / f"{hashlib.sha256(cache_key).hexdigest()}.mp3"
+        if not audio_path.exists():
+            payload = json.dumps({
+                "text": beat["text"],
+                "reference_id": str(config["voice_id"]),
+                "format": "mp3",
+                "prosody": {"speed": float(config["speed"])},
+            }, ensure_ascii=False).encode("utf-8")
+            request = Request(
+                "https://api.fish.audio/v1/tts",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {config['api_key']}",
+                    "Content-Type": "application/json",
+                    "model": str(config["model"]),
+                },
+                method="POST",
+            )
+            try:
+                with urlopen(request, timeout=300) as response:
+                    audio = response.read()
+            except HTTPError as exc:
+                detail = exc.read().decode("utf-8", errors="replace")[:500]
+                raise RuntimeError(f"Fish Audio synthesis failed for timeline segment {index} (HTTP {exc.code}): {detail}") from exc
+            except URLError as exc:
+                raise RuntimeError(f"Fish Audio synthesis failed for timeline segment {index}: {exc.reason}") from exc
+            audio_path.write_bytes(audio)
+        beat["audioData"] = "data:audio/mpeg;base64," + base64.b64encode(audio_path.read_bytes()).decode("ascii")
+        beat["language"] = config["language"]
+
+
+def generate_html_player(
+    info: dict,
+    profile: dict | None = None,
+    tts_config: dict[str, object] | None = None,
+    tts_cache_dir: Path | None = None,
+) -> str:
     """Generate a fully functioning interactive HTML lecture player tailored to the note."""
     title = info["title"]
     topic = info["topic_type"]
@@ -396,6 +516,14 @@ def generate_html_player(info: dict, profile: dict | None = None) -> str:
         "cardId": "card-0",
         "actionCode": "finishStage();"
     })
+
+    tts_config = tts_config or {"provider": "browser", "language": "zh-CN"}
+    for beat in beats:
+        beat["language"] = tts_config["language"]
+    if tts_config["provider"] == "fish_audio":
+        if tts_cache_dir is None:
+            raise ValueError("Fish Audio TTS requires a cache directory")
+        add_fish_audio(beats, tts_config, tts_cache_dir)
 
     beats_json = json.dumps(beats, ensure_ascii=False, indent=6)
 
@@ -946,6 +1074,7 @@ def generate_html_player(info: dict, profile: dict | None = None) -> str:
     let currentSeconds = 0;
     let isPlaying = false;
     let playInterval = null;
+    let activeAudio = null;
     let lastExecutedStep = -1;
     let elements = [];
     let outputs = [];
@@ -988,9 +1117,18 @@ def generate_html_player(info: dict, profile: dict | None = None) -> str:
       }}, 500);
     }}
 
+    function stopNarration() {{
+      if (activeAudio) {{
+        activeAudio.pause();
+        activeAudio.currentTime = 0;
+        activeAudio = null;
+      }}
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }}
+
     function pausePlayback() {{
       if (playInterval) clearInterval(playInterval);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopNarration();
       isPlaying = false;
     }}
 
@@ -1044,12 +1182,17 @@ def generate_html_player(info: dict, profile: dict | None = None) -> str:
         if (el) el.classList.add('active');
       }}
 
-      if ('speechSynthesis' in window && isPlaying) {{
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(b.text);
-        u.lang = 'zh-CN';
-        u.rate = 1.15;
-        window.speechSynthesis.speak(u);
+      if (isPlaying) {{
+        stopNarration();
+        if (b.audioData) {{
+          activeAudio = new Audio(b.audioData);
+          activeAudio.play().catch(err => console.log('Fish Audio playback failed:', err));
+        }} else if ('speechSynthesis' in window) {{
+          const u = new SpeechSynthesisUtterance(b.text);
+          u.lang = b.language || 'zh-CN';
+          u.rate = 1.15;
+          window.speechSynthesis.speak(u);
+        }}
       }}
 
       try {{ eval(b.actionCode); }} catch (err) {{ console.log(err); }}
@@ -1386,7 +1529,13 @@ def generate_html_player(info: dict, profile: dict | None = None) -> str:
 """
 
 
-def process_note_file(note_path: Path, prod_base_dir: Path | None = None, html_dest_dir: Path | None = None, profile: dict | None = None) -> dict:
+def process_note_file(
+    note_path: Path,
+    prod_base_dir: Path | None = None,
+    html_dest_dir: Path | None = None,
+    profile: dict | None = None,
+    tts_config: dict[str, object] | None = None,
+) -> dict:
     """Process a single note file and generate all Hypit assets and HTML player inside the section directory."""
     if profile is None:
         profile = load_user_profile(note_path.parent)
@@ -1412,7 +1561,7 @@ def process_note_file(note_path: Path, prod_base_dir: Path | None = None, html_d
     treatment_content = generate_treatment(info, profile)
     script_content = generate_script(info, profile)
     storyboard_content = generate_storyboard(info, profile)
-    html_content = generate_html_player(info, profile)
+    html_content = generate_html_player(info, profile, tts_config, sec_dir / ".course-notes-tts")
 
     # Write Hypit production assets directly into section folder
     (sec_dir / "BRIEF.md").write_text(brief_content, encoding="utf-8")
@@ -1455,6 +1604,7 @@ def main():
     source_group.add_argument("--chapter-dir", default=None, help="Process all markdown notes in a chapter directory")
     parser.add_argument("--out-dir", default=None, help="Optional external production directory (e.g. tmp/video_productions/productions)")
     parser.add_argument("--html-dest", default=None, help="Directory to save extra copy of interactive HTML players")
+    parser.add_argument("--env-file", default=None, help="Optional path to a .env file containing local TTS settings")
     parser.add_argument("--audit", dest="audit", action="store_true", default=False, help="Run headless visual & alignment audit")
     parser.add_argument("--no-audit", dest="audit", action="store_false", help="Skip visual audit (default)")
     args = parser.parse_args()
@@ -1478,7 +1628,9 @@ def main():
         else:
             print("ℹ️ 未检测到考生画像（或已跳过），自动按 408 通用标准流程执行（软降级模式）。")
 
-        res = process_note_file(note_path, prod_base_dir, Path(args.html_dest).resolve() if args.html_dest else None, profile=profile)
+        tts_config = load_tts_config(note_path.parent, Path(args.env_file) if args.env_file else None)
+        print(f"🔊 Narration provider: {tts_config['provider']}")
+        res = process_note_file(note_path, prod_base_dir, Path(args.html_dest).resolve() if args.html_dest else None, profile=profile, tts_config=tts_config)
         print(f"✅ Hypit assets & interactive player generated for [{res['title']}]:")
         print(f"   📁 Section folder: {res['sec_dir']}")
         print(f"   🌐 Interactive player: {res['html_path']}")
@@ -1531,10 +1683,12 @@ def main():
         else:
             print("ℹ️ 未检测到考生画像（或已跳过），自动按 408 通用标准流程执行（软降级模式）。")
 
+        tts_config = load_tts_config(chap_dir, Path(args.env_file) if args.env_file else None)
         print(f"🚀 Batch generating Hypit video assets for {len(note_files)} lessons in [{chap_dir.name}]...")
+        print(f"🔊 Narration provider: {tts_config['provider']}")
 
         for idx, note_path in enumerate(note_files, 1):
-            res = process_note_file(note_path, prod_base_dir, Path(args.html_dest).resolve() if args.html_dest else None, profile=profile)
+            res = process_note_file(note_path, prod_base_dir, Path(args.html_dest).resolve() if args.html_dest else None, profile=profile, tts_config=tts_config)
             print(f"  [{idx}/{len(note_files)}] {res['title']} ➔ {res['sec_dir'].name}")
 
         print(f"\n🎉 Batch production complete! All {len(note_files)} lessons now have Hypit assets & interactive players.")

@@ -56,6 +56,7 @@ Course Notes 面向在线课程整理场景。给出课程视频链接、课程�
 - **章节考点地图**：生成知识树、前置依赖、复习优先级、公式清单和小节索引。
 - **可选微课资产**：生成 `BRIEF`、`TREATMENT`、`SCRIPT`、`STORYBOARD` 与 HTML 播放器。
 - **五种视觉主题**：提供 cyberpunk、academic、brutalist、glassmorphism 和 classic_blue。
+- **可选 Fish Audio 配音**：从用户自己的音色或公开音色中选择，构建时生成 S2.1 Pro 音频；声音创建仍在 Fish Audio 网站完成。
 - **断点续作**：按小节记录状态，保留成功结果，仅重做缺失或失败项。
 
 ## 工作流
@@ -168,7 +169,38 @@ yt-dlp --version
 | yt-dlp | 获取在线课程字幕 | 可从终端直接调用 |
 | 支持技能的 AI 编程代理 | 执行工作流、生成并汇总笔记 | 需要文件读写与命令执行能力 |
 
-项目脚本的 Python 部分仅使用标准库；`yt-dlp` 是字幕获取阶段使用的外部命令。
+Python 脚本使用标准库；`yt-dlp` 是字幕获取阶段使用的外部命令。Fish Audio 配音直接调用官方 REST API，不需要安装同名 Python 包。
+
+### 可选：Fish Audio 配音
+
+默认播放器使用浏览器 Web Speech API，无需密钥。如需 Fish Audio S2.1 Pro 配音：
+
+```bash
+cp .env.example .env                 # Windows 可手动复制
+python scripts/configure_fish_audio.py
+```
+
+配置脚本可以选择语种，并查询“我的音色”或公开音色。需要创建新声音时，脚本只会打开
+<https://fish.audio/zh-CN/app/my-voices/>；创建完成后重新运行配置脚本选择即可。
+
+配置保存在本地 `.env`：
+
+```dotenv
+TTS_PROVIDER=fish_audio
+FISH_API_KEY=your_api_key
+FISH_AUDIO_LANGUAGE=zh-CN
+FISH_AUDIO_VOICE_ID=your_voice_id
+FISH_AUDIO_MODEL=s2.1-pro-free
+FISH_AUDIO_SPEED=1.0
+```
+
+`.env` 已被 Git 忽略。API Key 仅由 Python 在生成阶段使用，不会写入 HTML。生成的 MP3 会缓存在每个小节的 `.course-notes-tts/`，并以 data URL 嵌入单文件播放器；相同文本和配置重跑时会复用缓存。语种选项用于筛选音色和浏览器降级朗读，Fish Audio 会自动识别待合成文本的语言，不会翻译文本。
+
+如需把环境文件放在其他位置：
+
+```bash
+python scripts/generate_hypit_lesson.py --note "path/to/note.md" --env-file "path/to/.env" --no-audit
+```
 
 ### 可选：浏览器审查与 Cookie 导出
 
@@ -252,7 +284,8 @@ Cookie 缺失或字幕为空时，不会根据标题猜测课程内容。可能�
     ├── fetch_subs.py                # 分 P 列表、字幕下载与文本转换
     ├── export_cookies.py            # 从已有登录会话导出 Cookie
     ├── init_profile.py              # 首次学习画像与主题偏好建档
-    ├── generate_hypit_lesson.py     # 制作文档与 HTML 生成
+    ├── configure_fish_audio.py      # 选择已有 Fish Audio 音色并写入本地配置
+    ├── generate_hypit_lesson.py     # 制作文档、可选配音与 HTML 生成
     └── audit_player.py              # 可选浏览器审查与截图
 ```
 

@@ -1,6 +1,6 @@
 ---
 name: course-notes
-version: "0.6.0"
+version: "0.7.0"
 description: 将 B 站分 P 网课或本地字幕整理为可追溯的章节笔记、考点地图；按需生成 Hypit 风格制作文档和 HTML 交互微课。适用于“整理网课”“生成考研笔记”“按章节总结字幕”“制作配套微课”等请求；首次使用先确认学习画像与交付模式。
 argument-hint: "<BV号、视频URL或本地字幕路径> [章节或P范围] [--notes-only | --video] [--skip-profile]"
 user-invocable: true
@@ -67,7 +67,7 @@ python "<SKILL_DIR>/scripts/init_profile.py" --school "全国统考" --exam "408
 ### 能力边界
 
 - `fetch_subs.py` 列出课程分 P，并通过 yt-dlp 拉取字幕、转换带时间戳的文本；不提供音频转写，也不自动理解章节名称。
-- `generate_hypit_lesson.py` 是本地模板生成器，输出制作文档和 HTML，**不生成 MP4，不自动调用外部 Hypit 或 Impeccable 技能**。
+- `generate_hypit_lesson.py` 是本地模板生成器，输出制作文档和 HTML，**不生成 MP4，不自动调用外部 Hypit 或 Impeccable 技能**。默认使用浏览器语音；用户在本地 `.env` 明确启用后，可在生成阶段调用 Fish Audio 配音。
 - 外部技能存在且任务需要时，先读取其说明再使用；缺失不阻塞笔记交付。不得声称调用了未调用的技能。
 - 生成器的主题和交互是预置模板，不保证适配任意科目或算法；不适配时交付笔记/分镜，说明限制，不用错误的仿真代替知识讲解。
 - `init_profile.py` 的院校信息是内置预设，不是实时招生考情。考试科目、年份与政策须以官方来源核实；倒计时只能作为估算，不能当作已公布考试日期。
@@ -209,6 +209,10 @@ python "<SKILL_DIR>/scripts/fetch_subs.py" "<BV号>" --ps "20-32" --out-dir "<WO
 # 优先按已确认的小节清单逐一生成，便于续跑与保护已有资产
 python "<SKILL_DIR>/scripts/generate_hypit_lesson.py" --note "<小节目录>/<小节名称>.md" --no-audit
 
+# 可选：用户要求 Fish Audio 时，先由用户本地配置密钥并选择已有音色
+python "<SKILL_DIR>/scripts/configure_fish_audio.py" --env-file "<WORKSPACE>/.env"
+# 若 .env 不在笔记目录的祖先路径中，生成时显式追加 --env-file "<WORKSPACE>/.env"
+
 # 整章批处理只识别章目录内的笔记，以及“目录名与文件 stem 相同”的小节笔记
 python "<SKILL_DIR>/scripts/generate_hypit_lesson.py" --chapter-dir "<WORKSPACE>/<课程名称>/<章节目录>" --no-audit
 ```
@@ -220,6 +224,8 @@ python "<SKILL_DIR>/scripts/generate_hypit_lesson.py" --chapter-dir "<WORKSPACE>
 - 生成器不自动读取本课程风格记录；需要主代理将已确认的要求落实到资产。核对制作文档中的相对链接，移除不存在的外部技能链接。
 - 五种内置主题为 `cyberpunk`、`academic`、`brutalist`、`glassmorphism`、`classic_blue`。沿用用户偏好，不因院校名称臆断视觉风格。
 - 浏览器语音可用性与音色因环境而异，不承诺真人配音、严格音画同步或所有浏览器行为一致。
+- Fish Audio 仅在用户明确启用时使用。API Key 只存本地 `.env` 或进程环境，不写入 HTML、笔记、manifest 或日志；项目只能选择已有/公开音色，创建声音必须前往 <https://fish.audio/zh-CN/app/my-voices/>。
+- Fish Audio 通过官方 REST API 调用，不安装同名 `fishaudio` 包。它会产生外部请求并可能受额度、速率及服务条款限制；生成前说明这一点，重复生成优先复用 `.course-notes-tts/` 缓存，不声称语种选项会翻译口播文本。
 
 ### 6.3 可选审查
 
@@ -251,5 +257,6 @@ python "<SKILL_DIR>/scripts/audit_player.py" --html "<播放器路径>" --snap-d
 | `scripts/fetch_subs.py` | 分 P 列表、字幕下载与文本转换、Cookie 路径复用 |
 | `scripts/export_cookies.py` | 从已有登录会话导出 Netscape Cookie；须授权 |
 | `scripts/init_profile.py` | 首次画像建档；可由用户明确跳过，预设考情须另行核实 |
-| `scripts/generate_hypit_lesson.py` | 制作文档和 HTML 模板生成；使用 `--no-audit` 分离审查 |
+| `scripts/configure_fish_audio.py` | 选择已有 Fish Audio 音色并写入本地 `.env`；不创建声音 |
+| `scripts/generate_hypit_lesson.py` | 制作文档、可选 Fish Audio 配音和 HTML 模板生成；使用 `--no-audit` 分离审查 |
 | `scripts/audit_player.py` | 可选浏览器检查与截图，不代表全面测试 |
