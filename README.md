@@ -67,7 +67,7 @@ flowchart TD
     H --> I[可选浏览器审查]
 ```
 
-Course Notes 默认优先完成笔记与章节总览。只有在使用 `--video` 或明确要求时，才继续生成微课资产。
+Course Notes 会在开始前确认交付模式：选择仅笔记时生成笔记与章节总览；使用 `--video` 或确认需要 HTML 交互微课时，再生成配套微课资产。
 
 ## 快速开始
 
@@ -91,7 +91,20 @@ python -m pip install --upgrade yt-dlp
 yt-dlp --version
 ```
 
-### 2. 发起任务
+### 2. 确认首次配置
+
+工作区没有现成画像时，AI 会在处理课程前一次询问：
+
+- 仅生成笔记，还是同时生成 HTML 交互微课；
+- 目标院校、考试科目与专业方向；
+- 代码语言和复习阶段；
+- 微课视觉主题，以及是否运行可选浏览器审查。
+
+可直接回复“全部默认，带微课，不审查”。也可以使用 `--skip-profile` 明确跳过画像。已有画像会自动复用，并在开始前展示摘要。
+
+> **注意：** `--video` 表示制作文档与 HTML 交互微课，不生成 MP4。自然语言中的“生成视频”会先询问是否接受这种交付形式。
+
+### 3. 发起任务
 
 按章节整理：
 
@@ -119,7 +132,7 @@ yt-dlp --version
 
 如果章节名称无法唯一映射到分 P，AI 会先展示匹配结果并请求确认；明确给出 P 区间时可直接开始。
 
-### 3. 查看结果
+### 4. 查看结果
 
 典型交付结构：
 
@@ -161,7 +174,7 @@ npm install -g @playwright/cli@latest
 playwright-cli --help
 ```
 
-Playwright CLI 还用于从**已有登录会话**导出 Netscape 格式 Cookie。Cookie 只在本地使用，不应提交到 Git 仓库或复制到笔记中。
+Playwright CLI 还用于从**已有登录会话**导出 Netscape 格式 Cookie。Cookie 只在本地使用，不应提交到 Git 仓库，也不应把内容或绝对路径复制到笔记、manifest 或日志中。
 
 如果不需要 HTML 浏览器审查，也不需要通过浏览器会话导出 Cookie，可以不安装这组依赖。
 
@@ -233,7 +246,7 @@ Cookie 缺失或字幕为空时，不会根据标题猜测课程内容。可能�
 └── scripts/
     ├── fetch_subs.py                # 分 P 列表、字幕下载与文本转换
     ├── export_cookies.py            # 从已有登录会话导出 Cookie
-    ├── init_profile.py              # 可选学习画像与主题偏好
+    ├── init_profile.py              # 首次学习画像与主题偏好建档
     ├── generate_hypit_lesson.py     # 制作文档与 HTML 生成
     └── audit_player.py              # 可选浏览器审查与截图
 ```

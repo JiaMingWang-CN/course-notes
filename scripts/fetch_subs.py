@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -57,6 +58,10 @@ def load_state() -> dict:
 def save_state(state: dict) -> None:
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        os.chmod(STATE_FILE, 0o600)
+    except OSError:
+        pass
 
 
 def extract_bvid(source: str) -> str:
@@ -178,7 +183,7 @@ def main() -> int:
 
     cookies = args.cookies or load_state().get("last_cookie_path")
     if cookies and not Path(cookies).exists():
-        print(f"[warn] saved cookie file not found: {cookies}", file=sys.stderr)
+        print("[warn] Cookie file not found; ignoring the unavailable path.", file=sys.stderr)
         cookies = None
     if not cookies:
         # Auto-discover in typical workspace & config locations
@@ -193,7 +198,7 @@ def main() -> int:
         for cand in candidates:
             if cand.exists() and cand.stat().st_size > 50:
                 cookies = str(cand.resolve())
-                print(f"[info] Auto-discovered cookies at: {cookies}")
+                print("[info] Auto-discovered a local Cookie file (path not printed).")
                 break
 
     if not cookies:

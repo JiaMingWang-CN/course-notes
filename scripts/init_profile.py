@@ -351,7 +351,12 @@ def main():
             ui_style_in = theme_choice_map.get(theme_choice, "cyberpunk")
             return init_profile(school=school_in, exam=exam_in, major=major_in, lang=lang_in, stage=stage_in, ui_style=ui_style_in, year=args.year)
         else:
-            return init_profile(school="全国统考", exam="408 计算机学科专业基础", major="0812 计科 / 0854 软工", lang=args.lang, stage=args.stage, ui_style="cyberpunk", year=args.year)
+            print(
+                "ERROR: profile details were not provided in a non-interactive session. "
+                "Ask the user first, then pass explicit options, or use --skip.",
+                file=sys.stderr,
+            )
+            return 2
 
     return init_profile(
         school=args.school,

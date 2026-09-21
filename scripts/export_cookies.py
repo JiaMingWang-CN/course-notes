@@ -8,7 +8,7 @@ Usage:
   python export_cookies.py <output-file> [--domain bilibili.com]
 
 The playwright-cli session must exist and be logged in to the target site.
-Values are never printed to stdout; only a count and the output path.
+Cookie values and the output path are never printed; only a count is shown.
 """
 from __future__ import annotations
 
@@ -45,7 +45,6 @@ def main() -> int:
         print("Hint: open a browser session first (playwright-cli open) and log in.", file=sys.stderr)
         return 2
 
-    import re
     line_re = re.compile(r"^(.+?)=(.*) \(domain: ([^,]+), path: (.*)\)$")
 
     rows = []
@@ -68,7 +67,7 @@ def main() -> int:
         os.chmod(out, 0o600)
     except OSError:
         pass
-    print(f"exported {len(rows)} cookies -> {out}")
+    print(f"exported {len(rows)} cookies (output path not printed)")
     return 0
 
 
