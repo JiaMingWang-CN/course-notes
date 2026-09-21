@@ -56,7 +56,7 @@ Course Notes 面向在线课程整理场景。给出 B 站 BV 号、视频链接
 ## 工作流
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[课程链接或本地字幕] --> B[解析课程与确认范围]
     B --> C[获取并检查字幕]
     C --> D[生成小节笔记]
