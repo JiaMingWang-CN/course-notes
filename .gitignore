@@ -1,0 +1,24 @@
+.codegraph/
+
+# Runtime and generated workspace data
+tmp/
+user-profile/
+.playwright-cli/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*cookies*.txt
+*.key
+*.pem
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
