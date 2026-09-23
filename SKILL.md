@@ -1,6 +1,6 @@
 ---
 name: course-notes
-version: "1.0.0"
+version: "1.1.0"
 description: 将 B 站分 P 网课或本地字幕整理为可追溯的章节笔记、考点地图；按需生成 HTML 交互微课，或基于 HyperFrames 制作可审查、可渲染的课程讲解视频。适用于“整理网课”“生成考研笔记”“按章节总结字幕”“制作配套微课/MP4”等请求；每次任务先确认交付模式与必要授权，首次使用另确认学习画像。
 argument-hint: "<BV号、视频URL或本地字幕路径> [章节或P范围] [--notes-only | --video | --render-video] [--skip-profile]"
 user-invocable: true
@@ -71,7 +71,7 @@ python "<SKILL_DIR>/scripts/init_profile.py" --school "全国统考" --exam "408
 
 - `fetch_subs.py` 列出课程分 P，并通过 yt-dlp 拉取字幕、转换带时间戳的文本；不提供音频转写，也不自动理解章节名称。
 - `generate_hypit_lesson.py` 是 HTML 模式的本地模板生成器，输出制作文档和 HTML，**不生成 MP4，不自动调用外部 Hypit 或 Impeccable 技能，也不生成 HyperFrames 工程**。默认使用浏览器语音；用户在本地 `.env` 明确启用后，可在生成阶段调用 Fish Audio 配音。MP4 模式另走第 6.4 节，不把 HTML 模板冒充可渲染合成。
-- 外部技能存在且任务需要时，先读取其说明再使用；缺失不阻塞笔记交付。不得声称调用了未调用的技能。
+- 笔记、HTML 与 MP4 模式均以本技能内的说明为准；不依赖另行安装 Agent 技能，缺少渲染程序或素材服务只影响对应可选产物。不得声称使用了未实际使用的工具。
 - 生成器固定使用“温和教材”视觉风格。动画必须由本节笔记内容驱动；没有经过内容建模的专用算法沙盘时，使用知识点逐项状态演示，不用错误或无关的仿真代替知识讲解。
 - `init_profile.py` 的院校信息是内置预设，不是实时招生考情。考试科目、年份与政策须以官方来源核实；倒计时只能作为估算，不能当作已公布考试日期。
 
@@ -206,9 +206,7 @@ python "<SKILL_DIR>/scripts/fetch_subs.py" "<BV号>" --ps "20-32" --download-vid
 
 ### 6.0 分流原则
 
-以下 6.1–6.3 的生成器命令与 Fish Audio / HTML 审查条款**仅适用于 HTML 模式**；MP4 模式遵循 6.4，不运行生成器以替代 HyperFrames 合成。两种模式都可借鉴本节的教学规划，但不共享技术实现。若用户同时需要两者，分别交付并分别记录验证状态。
-
-HTML 模式在此阶段读取 [references/STYLE_PROFILE.md](references/STYLE_PROFILE.md)。它是设计模板，不是已分析任何课程的证据。
+HTML 和 MP4 **共享完整制作能力**，不是只共享提炼后的摘要。先读本技能的 [references/COURSE_VIDEO.md](references/COURSE_VIDEO.md) 适配入口，再按该文件定位到本仓库内 [references/hyperframes-skills/hyperframes/SKILL.md](references/hyperframes-skills/hyperframes/SKILL.md) 与两个已打包工作流及十个领域/入口技能的完整正文、references、scripts；按阶段阅读相关本地文件，不从 `~/.agents/skills/` 或网络加载 Agent 技能。再读 [references/STYLE_PROFILE.md](references/STYLE_PROFILE.md) 作为设计建议，不当作已观察课程的证据。**同一内容规划、视觉、动效、素材、字幕与混音标准；只按 6.2–6.4 和适配入口区分最终交付实现、交互及验证方式。** HTML 保留点击/播放/手动演示；MP4 必须可 seek 且在最终预览批准后渲染。两者共用已核实的脚本/分镜和合法素材，分别记录状态。
 
 ### 6.1 风格与内容规划
 
@@ -234,7 +232,7 @@ python "<SKILL_DIR>/scripts/generate_hypit_lesson.py" --chapter-dir "<WORKSPACE>
 **注意脚本副作用与限制：**
 - 生成器直接覆盖同名制作资产和 HTML；执行前确认目标文件可覆盖。
 - 辅助 Markdown 应放在 `references/` 等专用目录；命名异常或目录结构不规范时使用显式 `--note`，不要依赖批量扫描。
-- 输出 `BRIEF.md`、`TREATMENT.md`、`SCRIPT.md`、`STORYBOARD.md` 和 HTML 后，静态核对是否忠于本节，避免预置例子、408 措辞或沙盘与课程不符。
+- 输出 `BRIEF.md`、`TREATMENT.md`、`SCRIPT.md`、`STORYBOARD.md` 和 HTML 后，静态核对是否忠于本节，避免预置例子、408 措辞或沙盘与课程不符；按本地完整技能包的创意、动画、关键帧、素材、音频、排版和验证规则修订播放器与制作文档。生成器不会自动应用这些规则，不能只运行脚本就宣称融合完成。
 - 生成器不自动读取本课程风格记录；需要主代理将已确认的要求落实到资产。核对制作文档中的相对链接，移除不存在的外部技能链接。
 - **音画严格分离（杜绝上下文本复读）**：
   - **上半部分（视频/动画演示区）**：必须渲染真实的动态图形、节点状态流演进、知识状态机动效或算法推演（如 SVG 动态连接线、状态变迁高亮、输入/核心/输出三段式推演模型）。**严禁把讲义段落文字直接贴在上半区作为“伪动画”**。
@@ -277,26 +275,13 @@ python "<SKILL_DIR>/scripts/audit_player.py" --html "<播放器路径>" --snap-d
 
 脚本检查部分控制台异常、布局边界并截图，**不等于**全面验证交互、可访问性或所有分辨率。读取实际结果，不能仅凭生成命令退出成功宣称审查通过。用户要求不测试时，不执行生成器默认审查或其他替代测试，交付标记“未运行”。
 
-### 6.4 MP4 课程讲解视频：HyperFrames 路径
+### 6.4 MP4 课程讲解视频：本技能内置流程
 
-此路径的输入是已核实的小节笔记与可定位的字幕/原片证据；课程笔记规则仍优先。HyperFrames 是默认输出框架，但用户明确指定其他框架时不强制迁移。**先读取本地 `/hyperframes` 入口，再按其项目状态和路由执行**；仅在目标 `hyperframes/` 工程内检查 `BRIEF.md`、`STORYBOARD.md`、`hyperframes.json` 等状态文件；HTML 模式同名文档不是 HyperFrames brief，不得据此跳过视频意图访谈。新建时读取入口指定的意图访谈与匹配路由文件；短篇（约 3 分钟以内）、无真人画面、用图解解释笔记可走 `/faceless-explainer`，较长的 3–5 分钟课程或需要原课片段剪辑走 `/general-video`。按路由通过 `npx hyperframes skills update <workflow-name>` 安装/更新所属工作流；这涉及安装或网络时先取得授权，失败则保留笔记并说明，不能凭记忆伪造工作流。不得把这里的课程资料直接当成完整视频脚本；核对关键定义、条件、例题、结论与来源时间戳，分镜逐段映射口播与知识状态，课程原片使用遵守授权与引用范围。
+**两种交付共用本仓库打包的完整 HyperFrames 技能包；MP4 的具体合成/渲染步骤由 [references/COURSE_VIDEO.md](references/COURSE_VIDEO.md) 连接到本地工作流、core 与 CLI 的原始完整文档。不读取、不安装 `~/.agents/skills/` 下的视频技能，也不调用 `hyperframes skills update`。** HyperFrames CLI 是渲染程序，不是额外的 Agent 技能；没有依赖时先说明并征求安装授权，仍可交付笔记与待渲染工程。用户明确指定其他视频框架时先确认实现方式，不将别的框架伪装成 HyperFrames。
 
-| 课程视频需要 | 读取并应用的技能（均在 `~/.agents/skills/`，按需加载其 SKILL.md 和指向的参考） |
-|---|---|
-| 入口、项目状态、访谈、工作流安装与审批 | `/hyperframes`；不绕过选定工作流的 brief、review loop |
-| 可渲染 HTML 合成、片段/字幕/音频时序、轨道及确定性 | `/hyperframes-core`；写合成前必读，音画用同一时间基准 |
-| 知识点可视化、逐步推演及场景动效 | `/hyperframes-animation`；只用解释概念的动效，遵守单暂停时间轴 |
-| 放大公式、路径/遮罩、推演状态的镜头运动 | `/hyperframes-keyframes`；仅有此类运动时加载，检查可 seek 的关键状态 |
-| 教学节奏、脚本、字体和画面风格 | `/hyperframes-creative`；课程准确性优先，复用已确认的 `calm_textbook` 风格，不声称观察了未观看原片 |
-| 图表、代码窗、转场或其他命名视觉 | `/hyperframes-registry`；先用英文按意图搜索，再决定安装或手工制作；不得用不相关特效代替教学图解 |
-| 旁白、字幕、图像、图标、配乐等资产获取/生成 | `/media-use`；保存本地资产、来源和使用许可；TTS 文本与可见字幕分离，不擅自克隆讲师音色 |
-| 已放置音轨的淡入淡出、混音与旁白下的配乐 carve | `/hyperframes-audio`；配乐与口播重叠时做 carve 并试听，不把混音交给素材获取技能 |
-| 可在 Studio 编辑的场景、字幕轨、媒体轨与安全区 | `/hyperframes-studio`；场景用子合成，一条字幕轨，关键内容留在 title-safe 区 |
-| 初始化、检查、快照、预览与渲染诊断 | `/hyperframes-cli`；每次运行命令前读对应参考，不用已弃用的 `validate/inspect/layout` |
-
-1. **准备与权限**：确认视频时长、画幅/发布平台、是否使用原片、配音/配乐与版权、外部服务及预算。没有原片观看证据时仅用字幕与自制图解，不冒称“复刻板书”。已有 Fish Audio 仅在用户明确启用时可用；HyperFrames 的声音/字幕资产流程以 `/media-use` 为准，不把嵌入 HTML 的 MP3 data URI 当成默认可复用的工程素材。下载、安装、上传、发布和付费服务各自遵守用户授权。
-2. **制作**：在小节目录的 `hyperframes/` 中新建独立工程，保留笔记与证据，按路由的 brief → 分镜 → 合成执行。中文公式、下标、边界与反例给足阅读时长；以实测音频/字幕片段时长分配 `data-start` / `data-duration`，勿复用 HTML 生成器的估计 3:30 时间轴。没有适用授权素材时用自制概念图，不下载原课程视频作为当然可发布的素材。每条实际媒体记录出处、许可与缓存位置；既有目录不覆盖。
-3. **验证与审批**：运行 `npx hyperframes check`，按选定工作流检查子合成中点快照、知识状态、字幕可读性及音画同步；查看真实输出与失败项。`npx hyperframes preview --background` 提供最终 Studio 预览，等待用户对**最终预览**批准后才渲染；通过 check 不等于批准。批准后按 `/hyperframes-cli` 的命令合同渲染、检查成片非空并用 `ffprobe` 核对时长/音视频流，抽查片头、推演、反例、片尾画面并试听旁白；未实际运行的步骤标“未运行”。若用户禁止测试或渲染、依赖不可用或没有最终批准，交付工程/笔记与阻塞原因，**不声称 MP4 已完成**。
+1. **确认与脚本**：先过第 0 步的询问门槛；在小节 `hyperframes/` 中检查已有工程，仅复用本工程的 brief 与分镜，不把 HTML 模式的同名文档当作本模式的批准。根据已核实的笔记和 P/时间戳制作 `BRIEF.md`、`SCRIPT.md`、`STORYBOARD.md`；确定学习目标、画幅、时长、配音及素材权利。来源证据不足时明确标“待核实”，不能把生成器 3:30 估算当真实时长。
+2. **制作与音画**：每段口播绑定一个知识状态、来源和画面动作；使用温和教材视觉、可读中文和合适的停顿，定义/适用条件/推演/易错反例都须完整。工程内编排可 seek 的 HyperFrames 场景、字幕轨及本地音频；镜头运动与命名视觉仅在教学需要时使用。素材先查复用与使用许可；旁白和字幕文本分离，音乐与旁白重叠则对音乐混音让位。合成结构、关键帧、媒体与混音的完整合同在本地打包的对应技能与引用文件中；适配入口负责路径和交付差异，无需外部技能。
+3. **验证与批准**：按本地规范运行 `npx hyperframes check`、场景快照和最终 Studio 预览；**等待用户对最终预览明确批准后**才渲染 MP4。渲染后用 `ffprobe` 核实音视频流和时长，抽检教学画面、字幕及试听音频。拒绝验证、缺依赖或无批准则仅交付工程与阻塞原因，不能称“MP4 已完成”。
 
 ## 7. 交付与失败处理
 

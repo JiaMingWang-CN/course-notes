@@ -276,7 +276,7 @@ Cookie 缺失或字幕为空时，不会根据标题猜测课程内容。可能�
 | `STORYBOARD.md` | 连续场景、预计时间、画面状态与对应台词 |
 | `*_讲解视频演示.html` | 可直接在现代浏览器中打开的交互微课 |
 
-这些产物用于内容讲解、演示和后续制作。HTML 与制作文档不等同于 MP4 视频文件。选择 `--render-video` 时，读取本机 `~/.agents/skills/` 下的 HyperFrames 入口及九个领域技能（animation、audio、cli、core、creative、keyframes、registry、studio、media-use），按需安装选定视频工作流；不运行本仓库的 HTML 生成器冒充视频渲染。需 Node.js 22+、FFmpeg 与 HyperFrames CLI；通过检查、快照和最终预览后取得批准才渲染成片。
+这些产物用于内容讲解、演示和后续制作。HTML 与制作文档不等同于 MP4 视频文件。HTML 与 MP4 均通过本技能的 `references/COURSE_VIDEO.md` 接入仓库内 `references/hyperframes-skills/` 打包的十个完整技能及两个课程视频工作流（含参考文档与脚本）；`--video` 使用交互播放器生成器起稿后按完整规范修订，`--render-video` 制作独立 HyperFrames 工程。不读取或安装其他位置的 Agent 技能，也不把旧 HTML 播放器直接冒充可渲染合成。渲染依赖 Node.js 22+、FFmpeg 与 HyperFrames CLI（缺失时先征求安装许可）；通过检查、快照和最终预览后取得批准才渲染成片。
 
 ## 设计原则
 
@@ -294,8 +294,11 @@ Cookie 缺失或字幕为空时，不会根据标题猜测课程内容。可能�
 ├── SKILL.md                         # 工作流、质量标准与执行约定
 ├── README.md                        # 项目说明
 ├── references/
-│   └── STYLE_PROFILE.md             # 微课风格规划模板
+│   ├── STYLE_PROFILE.md             # HTML 微课风格规划模板
+│   ├── COURSE_VIDEO.md              # HTML/MP4 的本地完整技能包适配入口
+│   └── hyperframes-skills/          # Apache-2.0；十个完整技能 + 两个本地课程工作流及许可
 └── scripts/
+    ├── verify_bundled_skills.py      # 离线检查打包技能入口、链接与脚本引用
     ├── fetch_subs.py                # 分 P 列表、字幕下载与文本转换
     ├── export_cookies.py            # 从已有登录会话导出 Cookie
     ├── init_profile.py              # 首次学习画像与主题偏好建档
@@ -316,9 +319,9 @@ Cookie 缺失或字幕为空时，不会根据标题猜测课程内容。可能�
 
 ### 禁止商业化
 
-未经项目作者事先书面许可，不得将本项目及其修改版本用于任何直接或间接的商业用途，包括但不限于收费服务、付费课程、商业培训、内容代生产、软件集成、转售，以及通过广告或订阅获利。
+未经项目作者事先书面许可，不得将本项目原创部分及其修改版本用于任何直接或间接的商业用途，包括但不限于收费服务、付费课程、商业培训、内容代生产、软件集成、转售，以及通过广告或订阅获利。本限制**不适用于** `references/hyperframes-skills/` 内独立按 Apache-2.0 许可的上游文件；其权利和义务见该目录的 `LICENSE` 与 `PROVENANCE.md`。
 
-允许个人在非商业学习、研究和内部评估场景中查看与使用本项目。当前仓库未发布单独的 `LICENSE` 文件，项目作者保留全部权利；上述说明不构成对源代码的完整许可授权。
+允许个人在非商业学习、研究和内部评估场景中查看与使用本项目原创部分。当前仓库根目录未发布单独的 `LICENSE` 文件，项目作者保留其原创部分的权利；上述说明不构成对该部分源代码的完整许可授权，也不改变上述 Apache-2.0 子目录的许可。
 
 ### 免责声明
 
