@@ -97,13 +97,30 @@ def parse_ps(spec: str, total: int) -> list[int]:
     return sorted(p for p in out if 1 <= p <= total)
 
 
-def run_ytdlp(bvid: str, p: int, cookies: str | None, out_dir: Path) -> subprocess.CompletedProcess[str]:
+def run_ytdlp(
+    bvid: str,
+    p: int,
+    cookies: str | None,
+    out_dir: Path,
+    download_video: bool = False,
+    video_quality: str = "480",
+) -> subprocess.CompletedProcess[str]:
     url = f"https://www.bilibili.com/video/{bvid}/?p={p}"
     cmd = [
-        YTDLP, "--skip-download", "--write-subs", "--write-auto-subs",
+        YTDLP,
+        "--write-subs", "--write-auto-subs",
         "--sub-langs", "ai-zh", "--no-playlist", "--quiet", "--no-warnings",
         "-o", str(out_dir / f"P{p}.%(ext)s"),
     ]
+    if download_video:
+        target_res = "1080" if video_quality == "best" else video_quality
+        cmd.extend([
+            "-f", f"b[height<={target_res}]/bv*[height<={target_res}]+ba/worst",
+            "--merge-output-format", "mp4",
+        ])
+    else:
+        cmd.append("--skip-download")
+
     if cookies:
         cmd[2:2] = ["--cookies", cookies]
     cmd.append(url)
@@ -112,6 +129,14 @@ def run_ytdlp(bvid: str, p: int, cookies: str | None, out_dir: Path) -> subproce
 
 def find_sub(out_dir: Path, p: int) -> Path | None:
     for pattern in (f"P{p}*.ai-zh.srt", f"P{p}*.ai-zh.vtt", f"P{p}*.srt", f"P{p}*.vtt"):
+        hits = sorted(out_dir.glob(pattern))
+        if hits:
+            return hits[0]
+    return None
+
+
+def find_video(out_dir: Path, p: int) -> Path | None:
+    for pattern in (f"P{p}.mp4", f"P{p}.mkv", f"P{p}.webm", f"P{p}*.mp4"):
         hits = sorted(out_dir.glob(pattern))
         if hits:
             return hits[0]
@@ -157,6 +182,8 @@ def main() -> int:
     ap.add_argument("--ps", type=str, default=None, help="Episodes, e.g. 20-32 or 20,21,25")
     ap.add_argument("--cookies", type=str, default=None, help="Netscape-format cookies.txt (default: reuse saved path)")
     ap.add_argument("--out-dir", type=str, default=None, help="Output directory (default: tmp/subs)")
+    ap.add_argument("--download-video", action="store_true", help="Also download low-res video (e.g. 360p/480p) for multimodal understanding")
+    ap.add_argument("--video-quality", type=str, default="480", choices=["360", "480", "720", "best"], help="Target video resolution (default: 480)")
     ap.add_argument("--forget-cookies", action="store_true", help="Forget the saved cookie path")
     args = ap.parse_args()
 
@@ -219,7 +246,11 @@ def main() -> int:
 
     ok, no_sub, failed = [], [], []
     for p in targets:
-        proc = run_ytdlp(bvid, p, cookies, out_dir)
+        proc = run_ytdlp(
+            bvid, p, cookies, out_dir,
+            download_video=args.download_video,
+            video_quality=args.video_quality,
+        )
         if proc.returncode != 0:
             failed.append(p)
             detail = (proc.stderr or proc.stdout).strip().splitlines()
@@ -227,17 +258,19 @@ def main() -> int:
             print(f"P{p}\tDOWNLOAD-FAIL\t{summary}\t{titles.get(p, '')}")
             continue
         sub = find_sub(out_dir, p)
+        video_file = find_video(out_dir, p) if args.download_video else None
+        video_tag = f"\tvideo: {video_file.name}" if video_file else ("\tvideo: MISSING" if args.download_video else "")
         if sub is None:
             no_sub.append(p)
-            print(f"P{p}\tNO-SUB\t{titles.get(p, '')}")
+            print(f"P{p}\tNO-SUB{video_tag}\t{titles.get(p, '')}")
             continue
         n = sub_to_text(sub, out_dir / f"P{p}.txt")
         if n == 0:
             no_sub.append(p)
-            print(f"P{p}\tEMPTY-SUB\t{titles.get(p, '')}")
+            print(f"P{p}\tEMPTY-SUB{video_tag}\t{titles.get(p, '')}")
             continue
         ok.append(p)
-        print(f"P{p}\tOK\t{n} lines\t{titles.get(p, '')}")
+        print(f"P{p}\tOK\t{n} lines{video_tag}\t{titles.get(p, '')}")
 
     if cookies:
         state = load_state()

@@ -597,10 +597,20 @@ def generate_html_player(
             beat.pop("emphasisTerms", None)
 
     beats_json = json.dumps(beats, ensure_ascii=False, indent=6)
-    lesson_steps_json = json.dumps([
-        {"title": p["title"], "body": p["content"].replace("\n", " ")[:180]}
-        for p in points
-    ], ensure_ascii=False)
+    steps_data = []
+    for idx, p in enumerate(points):
+        clean_title = re.sub(r"^\d+[\.、\s]*", "", p["title"]).strip()
+        bolds = re.findall(r"\*\*([^\*]+)\*\*", p["content"])
+        diag_in = bolds[0].strip() if len(bolds) > 0 else "前置输入/定义"
+        diag_out = bolds[1].strip() if len(bolds) > 1 else (bolds[0].strip() if len(bolds) > 0 else "性质收敛/考法")
+        steps_data.append({
+            "index": idx + 1,
+            "title": clean_title,
+            "input": diag_in[:16],
+            "output": diag_out[:16],
+            "stageTag": f"阶段 0{idx+1} · 核心推演",
+        })
+    lesson_steps_json = json.dumps(steps_data, ensure_ascii=False)
 
     # Topic-specific stage markup
     if topic == "stack":
@@ -684,10 +694,51 @@ def generate_html_player(
     else:
         stage_markup = """
           <div class="lesson-stage">
-            <div class="lesson-stage-heading">当前讲解内容</div>
-            <div id="algoStepDesc" class="lesson-stage-copy">课程尚未开始。点击播放后，画面将随旁白逐段更新。</div>
+            <div class="stage-visual-header">
+              <div class="visual-badge">🎬 知识图解与动态状态机</div>
+              <div id="visualRunStatus" class="visual-status">● 待命中</div>
+            </div>
+
+            <!-- Central Dynamic Architecture Diagram -->
+            <div class="diagram-canvas" id="diagramCanvas">
+              <div class="diagram-node-block" id="nodeInputBlock">
+                <span class="node-tag">IN 前置/输入</span>
+                <strong id="nodeInputText">等待初始化</strong>
+              </div>
+              <div class="diagram-connector">
+                <svg width="36" height="20" viewBox="0 0 36 20">
+                  <path class="flow-arrow" d="M2,10 L28,10 M20,4 L28,10 L20,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="diagram-node-block core" id="nodeCoreBlock">
+                <span class="node-tag">CORE 核心推演</span>
+                <strong id="nodeCoreText">知识状态机</strong>
+              </div>
+              <div class="diagram-connector">
+                <svg width="36" height="20" viewBox="0 0 36 20">
+                  <path class="flow-arrow" d="M2,10 L28,10 M20,4 L28,10 L20,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="diagram-node-block" id="nodeOutputBlock">
+                <span class="node-tag">OUT 收敛/性质</span>
+                <strong id="nodeOutputText">待推导</strong>
+              </div>
+            </div>
+
+            <!-- Active Concept Highlight Pill -->
+            <div class="active-concept-pill" id="activeConceptPill">
+              <span class="concept-icon">📌</span>
+              <span id="activeConceptLabel">点击下方播放，开始动态推演</span>
+            </div>
+
+            <!-- State Step Navigation Slots -->
             <div id="stateSlots" class="lesson-step-list" aria-label="知识点访问状态"></div>
-            <div class="lesson-stage-metrics"><span>已访问 <strong id="visitedCount">0</strong></span><span>当前 <strong id="currentStepLabel">—</strong></span><span>总计 <strong id="totalStepCount">0</strong></span></div>
+
+            <div class="lesson-stage-metrics">
+              <span>已推演 <strong id="visitedCount">0</strong></span>
+              <span>当前节点 <strong id="currentStepLabel">—</strong></span>
+              <span>总节点 <strong id="totalStepCount">0</strong></span>
+            </div>
           </div>
         """
         sandbox_controls = """
@@ -972,15 +1023,44 @@ def generate_html_player(
     .point-title {{ font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }}
     .point-body {{ font-size: 0.78rem; color: var(--muted); line-height: 1.55; }}
     .lesson-stage {{ width:100%; max-width:640px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1.25rem; }}
-    .lesson-stage-heading {{ color:var(--primary); font-weight:700; margin-bottom:0.65rem; }}
-    .lesson-stage-copy {{ color:var(--text); line-height:1.75; min-height:3.5rem; }}
-    .lesson-step-list {{ display:grid; gap:0.5rem; margin-top:1rem; }}
+    .stage-visual-header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; }}
+    .visual-badge {{ font-size:0.82rem; font-weight:700; color:var(--primary); }}
+    .visual-status {{ font-size:0.75rem; font-weight:600; color:var(--muted); padding:0.15rem 0.55rem; border-radius:999px; background:var(--card); transition:all 0.2s; }}
+    .visual-status.active {{ color:#047857; background:#d1fae5; box-shadow:0 0 8px rgba(4, 120, 87, 0.25); }}
+    .visual-status.warn {{ color:#b45309; background:#fef3c7; }}
+    .visual-status.done {{ color:#15803d; background:#dcfce7; }}
+    .diagram-canvas {{
+      display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+      background:var(--viewport-bg); border:1.5px solid var(--border); border-radius:10px;
+      padding:0.85rem 0.75rem; margin-bottom:0.75rem; transition:all 0.3s ease;
+    }}
+    .diagram-canvas.pulse {{ border-color:var(--primary); box-shadow:0 0 14px rgba(36, 99, 78, 0.2); transform:scale(1.01); }}
+    .diagram-node-block {{
+      flex:1; display:flex; flex-direction:column; align-items:center; text-align:center;
+      background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:0.55rem 0.4rem;
+      min-height:56px; justify-content:center; transition:all 0.2s;
+    }}
+    .diagram-node-block.core {{
+      flex:1.4; border-color:var(--primary); background:var(--card); box-shadow:0 2px 8px rgba(36, 99, 78, 0.1);
+    }}
+    .node-tag {{ font-size:0.65rem; color:var(--muted); font-weight:700; text-transform:uppercase; margin-bottom:0.2rem; }}
+    .diagram-node-block.core .node-tag {{ color:var(--primary); }}
+    .diagram-node-block strong {{ font-size:0.8rem; color:var(--text); line-height:1.3; word-break:break-all; }}
+    .diagram-connector {{ display:flex; align-items:center; color:var(--primary); flex-shrink:0; }}
+    .flow-arrow {{ stroke-dasharray: 5 3; animation: flowDash 1.2s linear infinite; }}
+    @keyframes flowDash {{ to {{ stroke-dashoffset: -16; }} }}
+    .active-concept-pill {{
+      display:flex; align-items:center; gap:0.5rem; background:var(--card);
+      border:1px solid var(--border); border-radius:8px; padding:0.45rem 0.75rem;
+      font-size:0.82rem; font-weight:600; color:var(--text); margin-bottom:0.75rem;
+    }}
+    .lesson-step-list {{ display:grid; gap:0.5rem; margin-top:0.75rem; }}
     .lesson-step {{ display:grid; grid-template-columns:2rem 1fr auto; gap:0.65rem; align-items:center; padding:0.65rem 0.75rem; border:1px solid var(--border); border-radius:10px; background:#fafaf6; color:var(--muted); }}
     .lesson-step.visited {{ background:var(--card); color:var(--text); }}
     .lesson-step.current {{ background:var(--primary); border-color:var(--primary); color:#fff; }}
     .lesson-step-index, .lesson-stage-metrics {{ font-family:Consolas, "SFMono-Regular", monospace; font-variant-numeric:tabular-nums; }}
     .lesson-step-state {{ font-size:0.72rem; }}
-    .lesson-stage-metrics {{ display:flex; justify-content:space-between; gap:1rem; margin-top:1rem; padding-top:0.8rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.78rem; }}
+    .lesson-stage-metrics {{ display:flex; justify-content:space-between; gap:1rem; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.78rem; }}
     .sandbox-note {{ color:var(--muted); font-size:0.75rem; line-height:1.6; margin-top:0.65rem; }}
     .manual-demo {{ border:1px solid var(--border); border-radius:10px; background:#fafaf6; padding:0.8rem; min-height:6.5rem; }}
     .manual-demo-state {{ display:inline-block; color:var(--primary); background:var(--card); border-radius:999px; padding:0.15rem 0.5rem; font:0.7rem Consolas, monospace; margin-bottom:0.45rem; }}
@@ -1436,10 +1516,40 @@ def generate_html_player(
         el.className = 'lesson-step' + (idx < index ? ' visited' : (idx === index ? ' current' : ''));
         if (state) state.innerText = idx < index ? '已访问' : (idx === index ? '当前访问' : '未访问');
       }});
-      const desc = document.getElementById('algoStepDesc');
-      if (desc) desc.innerText = index >= 0 && LESSON_STEPS[index]
-        ? `${{manual ? '动手查看' : '正在讲解'}}：${{LESSON_STEPS[index].title}}。${{LESSON_STEPS[index].body}}`
-        : '课程尚未开始。点击播放后，画面将随旁白逐段更新。';
+
+      const inText = document.getElementById('nodeInputText');
+      const coreText = document.getElementById('nodeCoreText');
+      const outText = document.getElementById('nodeOutputText');
+      const pill = document.getElementById('activeConceptLabel');
+      const runStatus = document.getElementById('visualRunStatus');
+      const canvas = document.getElementById('diagramCanvas');
+
+      if (index >= 0 && LESSON_STEPS[index]) {{
+        const s = LESSON_STEPS[index];
+        if (inText) inText.innerText = s.input || '输入就绪';
+        if (coreText) coreText.innerText = s.title;
+        if (outText) outText.innerText = s.output || '性质推导';
+        if (pill) pill.innerText = `${{s.stageTag}}：${{s.title}}`;
+        if (runStatus) {{
+          runStatus.innerText = '● 正在推演';
+          runStatus.className = 'visual-status active';
+        }}
+        if (canvas) {{
+          canvas.classList.remove('pulse');
+          void canvas.offsetWidth;
+          canvas.classList.add('pulse');
+        }}
+      }} else {{
+        if (inText) inText.innerText = '等待初始化';
+        if (coreText) coreText.innerText = '知识状态机';
+        if (outText) outText.innerText = '待推导';
+        if (pill) pill.innerText = '点击下方播放，开始动态推演';
+        if (runStatus) {{
+          runStatus.innerText = '● 待命中';
+          runStatus.className = 'visual-status';
+        }}
+      }}
+
       const visited = document.getElementById('visitedCount');
       const current = document.getElementById('currentStepLabel');
       if (visited) visited.innerText = Math.max(0, index);
@@ -1474,8 +1584,17 @@ def generate_html_player(
           const state = el.querySelector('.lesson-step-state');
           if (state) state.innerText = '已访问';
         }});
-        const desc = document.getElementById('algoStepDesc');
-        if (desc) desc.innerText = '易错提醒：' + {safe_trap_json};
+        const pill = document.getElementById('activeConceptLabel');
+        const runStatus = document.getElementById('visualRunStatus');
+        const coreText = document.getElementById('nodeCoreText');
+        const outText = document.getElementById('nodeOutputText');
+        if (runStatus) {{
+          runStatus.innerText = '⚠️ 易错警示';
+          runStatus.className = 'visual-status warn';
+        }}
+        if (pill) pill.innerText = '易错陷阱排查：结合反例与边界条件检验';
+        if (coreText) coreText.innerText = '易错边界拦截';
+        if (outText) outText.innerText = '避坑准则生效';
         const visited = document.getElementById('visitedCount');
         const current = document.getElementById('currentStepLabel');
         if (visited) visited.innerText = LESSON_STEPS.length;
@@ -1501,12 +1620,21 @@ def generate_html_player(
           const state = el.querySelector('.lesson-step-state');
           if (state) state.innerText = '已访问';
         }});
-        const desc = document.getElementById('algoStepDesc');
-        if (desc) desc.innerText = '本节回顾：以上知识点已全部讲解，请结合例题检查掌握情况。';
+        const pill = document.getElementById('activeConceptLabel');
+        const runStatus = document.getElementById('visualRunStatus');
+        const coreText = document.getElementById('nodeCoreText');
+        const outText = document.getElementById('nodeOutputText');
+        if (runStatus) {{
+          runStatus.innerText = '✓ 全景就绪';
+          runStatus.className = 'visual-status done';
+        }}
+        if (pill) pill.innerText = '本节知识图解已全景收敛，可结合下方例题继续通关';
+        if (coreText) coreText.innerText = '全章考点收敛';
+        if (outText) outText.innerText = '知识体系构建';
         const visited = document.getElementById('visitedCount');
         const current = document.getElementById('currentStepLabel');
         if (visited) visited.innerText = LESSON_STEPS.length;
-        if (current) current.innerText = '完成';
+        if (current) current.innerText = '通关';
         return;
       }}
       const vb = document.getElementById('verdictBanner');
@@ -1593,7 +1721,7 @@ def generate_html_player(
       if (!step) {{ resetManualLessonDemo(); return; }}
       if (state) state.innerText = `${{String(manualLessonStep + 1).padStart(2, '0')}} / ${{String(LESSON_STEPS.length).padStart(2, '0')}}`;
       if (title) title.innerText = step.title;
-      if (body) body.innerText = step.body;
+      if (body) body.innerText = step.output ? `前置约束: ${{step.input}}  ➔  推演结论: ${{step.output}}` : step.title;
     }}
     function resetManualLessonDemo() {{
       manualLessonStep = -1;
